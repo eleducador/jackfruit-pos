@@ -1,0 +1,9 @@
+{
+  "name": "jackfruit-pos-qr",
+  "version": "2.0.0",
+  "description": "Sistema POS, Comandas KDS en Tiempo Real, Pedidos por QR en Mesa y Facturación Electrónica SUNAT (facturaloconlwp.com) para JACKFRUIT RIO NEGRO E.I.R.L.",
+  "private": true,
+  "engines": {
+    "node": ">=18.x"
+  }
+}

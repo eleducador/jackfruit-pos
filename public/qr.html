@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Jackfruit Río Negro — Carta Digital Interactiva QR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #071a12;
+      --bg-panel: #0d281c;
+      --text-light: #f8fafc;
+      --muted-light: #a7f3d0;
+      --accent: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(circle at top right, #113a28 0%, #071a12 65%, #04100b 100%);
+      color: var(--text-light);
+      min-height: 100vh;
+      padding-bottom: 110px;
+    }
+
+    .app-container {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 0 14px;
+    }
+
+    /* Header estilo Metro Moderno */
+    .metro-header {
+      position: sticky;
+      top: 0;
+      z-index: 45;
+      background: rgba(7, 26, 18, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 14px 0 12px;
+      margin-bottom: 14px;
+    }
+
+    .header-inner {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 0 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .brand-tile-logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #facc15, #eab308);
+      color: #052e16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      border-radius: 6px;
+      box-shadow: 0 4px 14px rgba(250, 204, 21, 0.35);
+    }
+
+    .brand-titles h1 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .brand-titles p {
+      font-size: 12px;
+      color: var(--muted-light);
+      margin-top: 2px;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mesa-tile-badge {
+      background: #15803d;
+      border: 2px solid #4ade80;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: transform 0.12s;
+    }
+
+    .mesa-tile-badge:active {
+      transform: scale(0.95);
+    }
+
+    .live-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade80;
+    }
+
+    /* Buscador Rápido */
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .metro-search-wrap {
+      position: relative;
+      flex: 1;
+    }
+
+    .metro-search {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      padding: 13px 16px 13px 44px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .metro-search::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .metro-search:focus {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: #facc15;
+    }
+
+    .search-ico {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+    }
+
+    .btn-home-tiles {
+      background: #facc15;
+      color: #052e16;
+      border: none;
+      padding: 0 18px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: transform 0.12s;
+    }
+
+    .btn-home-tiles:active {
+      transform: scale(0.95);
+    }
+
+    /* WINDOWS MOBILE / METRO LIVE TILES GRID */
+    .section-label {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #86efac;
+      margin: 12px 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metro-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 134px;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    @media (min-width: 640px) {
+      .metro-grid {
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: 142px;
+        gap: 12px;
+      }
+    }
+
+    .metro-tile {
+      position: relative;
+      border-radius: 6px;
+      padding: 14px;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+      transition: transform 0.14s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.14s, border-color 0.14s;
+    }
+
+    .metro-tile:hover {
+      transform: translateY(-3px) scale(1.01);
+      border-color: rgba(255, 255, 255, 0.55);
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
+    }
+
+    .metro-tile:active {
+      transform: scale(0.95);
+    }
+
+    .tile-wide {
+      grid-column: span 2;
+    }
+
+    .tile-icon-bg {
+      position: absolute;
+      right: -8px;
+      bottom: -12px;
+      font-size: 76px;
+      opacity: 0.22;
+      pointer-events: none;
+      transform: rotate(-8deg);
+    }
+
+    .tile-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 2;
+    }
+
+    .tile-emoji {
+      font-size: 34px;
+      line-height: 1;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.25));
+    }
+
+    .tile-count {
+      background: rgba(0, 0, 0, 0.32);
+      backdrop-filter: blur(4px);
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .tile-bottom {
+      z-index: 2;
+    }
+
+    .tile-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .tile-sub {
+      font-size: 11.5px;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-top: 3px;
+    }
+
+    /* Colores vibrantes Windows Phone / Metro */
+    .c-waiter   { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #fde047; }
+    .c-order    { background: linear-gradient(135deg, #15803d 0%, #166534 100%); }
+    .c-bill     { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
+    .c-all      { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); }
+    .c-helados  { background: linear-gradient(135deg, #db2777 0%, #9d174d 100%); }
+    .c-cremo    { background: linear-gradient(135deg, #0891b2 0%, #155e75 100%); }
+    .c-jack     { background: linear-gradient(135deg, #16a34a 0%, #065f46 100%); }
+    .c-paco     { background: linear-gradient(135deg, #ea580c 0%, #9a3412 100%); }
+    .c-tilapia  { background: linear-gradient(135deg, #0d9488 0%, #115e59 100%); }
+    .c-cecina   { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+    .c-porcion  { background: linear-gradient(135deg, #ca8a04 0%, #854d0e 100%); }
+    .c-refresco { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
+    .c-jugos    { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+    .c-frozen   { background: linear-gradient(135deg, #0284c7 0%, #075985 100%); }
+    .c-cafe     { background: linear-gradient(135deg, #78350f 0%, #451a03 100%); }
+    .c-licor    { background: linear-gradient(135deg, #9333ea 0%, #581c87 100%); }
+    .c-tienda   { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); }
+
+    /* CUADROS GRANDES DE PRODUCTOS (PRODUCT TILES) */
+    .category-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-left: 6px solid #facc15;
+    }
+
+    .products-metro-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 640px) {
+      .products-metro-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .products-metro-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .prod-tile {
+      background: #112e21;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 176px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.12s, border-color 0.12s, background 0.12s;
+      cursor: pointer;
+    }
+
+    .prod-tile:active {
+      transform: scale(0.97);
+    }
+
+    .prod-tile.in-cart {
+      background: linear-gradient(145deg, #14532d 0%, #052e16 100%);
+      border-color: #facc15;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.35);
+    }
+
+    .prod-tile-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .prod-tile-cat {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #bbf7d0;
+    }
+
+    .prod-tile-qty-badge {
+      background: #facc15;
+      color: #052e16;
+      font-size: 15px;
+      font-weight: 800;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    }
+
+    .prod-tile-name {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin: 10px 0 8px;
+      color: #fff;
+    }
+
+    .prod-tile-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .prod-tile-price {
+      font-size: 18px;
+      font-weight: 800;
+      color: #facc15;
+    }
+
+    .tile-add-btn {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 8px 13px;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tile-qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tile-step-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 5px;
+      border: none;
+      background: #facc15;
+      color: #052e16;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Barra Inferior Flotante Tipo Metro AppBar */
+    .metro-appbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #15803d;
+      border-top: 3px solid #facc15;
+      padding: 12px 18px;
+      z-index: 60;
+      box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.45);
+    }
+
+    .appbar-inner {
+      max-width: 1020px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .appbar-btn {
+      background: #facc15;
+      color: #052e16;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Modales */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 16, 11, 0.8);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 120;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .metro-modal {
+      background: #0d281c;
+      border: 2px solid #facc15;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 20px;
+      color: #fff;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    .metro-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .metro-input::placeholder {
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    .pin-box {
+      background: rgba(250, 204, 21, 0.12);
+      border: 2px dashed #facc15;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 14px 0;
+    }
+
+    .pin-input {
+      width: 96px;
+      padding: 9px;
+      font-size: 22px;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: 6px;
+      border-radius: 6px;
+      border: 2px solid #facc15;
+      background: #071a12;
+      color: #facc15;
+    }
+
+    .btn-send-metro {
+      width: 100%;
+      background: #facc15;
+      color: #052e16;
+      border: none;
+      padding: 14px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .state-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .state-pending   { background: #fef08a; color: #713f12; }
+    .state-preparing { background: #fed7aa; color: #9a3412; }
+    .state-ready     { background: #4ade80; color: #052e16; }
+    .state-delivered { background: rgba(255,255,255,0.16); color: #e2e8f0; }
+
+    .toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #facc15;
+      color: #052e16;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 800;
+      z-index: 300;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <!-- CABECERA METRO -->
+  <header class="metro-header">
+    <div class="header-inner">
+      <div class="brand-wrap" onclick="showHomeTiles()">
+        <div class="brand-tile-logo">🌴</div>
+        <div class="brand-titles">
+          <h1>JACKFRUIT RÍO NEGRO</h1>
+          <p>Menú Interactivo de Mesa • Toca un cuadro para pedir</p>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <div class="mesa-tile-badge" onclick="openTableSelector()" title="Cambiar de mesa">
+          <span class="live-dot"></span>
+          <span id="tableBadgeText">MESA 6</span> ▾
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <!-- BUSCADOR Y BOTÓN DE INICIO DE CUADROS -->
+    <div class="search-row">
+      <button class="btn-home-tiles" id="btnBackHome" style="display:none" onclick="showHomeTiles()">
+        ⊞ Inicio
+      </button>
+      <div class="metro-search-wrap">
+        <span class="search-ico">🔍</span>
+        <input type="text" id="searchInput" class="metro-search" placeholder="Buscar plato, helado, cremolada, bebida..." oninput="onSearchInput()" />
+      </div>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 1: MENÚ DE CUADROS GRANDES ESTILO WINDOWS MOBILE (METRO)  -->
+    <!-- ================================================================== -->
+    <section id="view-home-tiles">
+      <div class="section-label">
+        <span>⚡ Acciones Rápidas de tu Mesa</span>
+        <span id="liveStatusHint" style="color:#facc15">Conectado en vivo</span>
+      </div>
+
+      <div class="metro-grid" style="margin-bottom:18px">
+        <!-- TILE 1: LLAMAR AL MOZO (GRANDE Y DIRECTO) -->
+        <div class="metro-tile c-waiter" onclick="sendTableAction('call_waiter')">
+          <div class="tile-icon-bg">🔔</div>
+          <div class="tile-top">
+            <span class="tile-emoji">🔔</span>
+            <span class="tile-count">1 TOQUE</span>
+          </div>
+          <div class="tile-bottom">
+            <div class="tile-title">LLAMAR AL MOZO</div>
+            <div class="tile-sub">Aviso inmediato en pantalla</div>
+          </div>
+        </div>
+
+        <!-- TILE 2: MI PEDIDO EN VIVO -->
+        <div class="metro-tile c-order" onclick="openLiveOrderView()">
+          <div class="tile-icon-bg">🔥</div>
+          <div class="tile-top">
+            <span class="tile-emoji">🔥</span>
+            <span class="tile-count" id="tileOrderCountBadge">0 ÍTEMS</span>
+          </div>
+          <div class="tile-bottom">
+            <div class="tile-title">MI PEDIDO EN VIVO</div>
+            <div class="tile-sub" id="tileOrderSubText">Ver estado en cocina</div>
+          </div>
+        </div>
+
+        <!-- TILE 3: PEDIR LA CUENTA (BOLETA / FACTURA) -->
+        <div class="metro-tile c-bill" onclick="openServiceModal()">
+          <div class="tile-icon-bg">🧾</div>
+          <div class="tile-top">
+            <span class="tile-emoji">🧾</span>
+            <span class="tile-count">CAJA</span>
+          </div>
+          <div class="tile-bottom">
+            <div class="tile-title">PEDIR LA CUENTA</div>
+            <div class="tile-sub">Boleta o Factura Electrónica</div>
+          </div>
+        </div>
+
+        <!-- TILE 4: VER TODA LA CARTA COMPLETA -->
+        <div class="metro-tile c-all" onclick="openCategoryTile('TODOS')">
+          <div class="tile-icon-bg">🍽️</div>
+          <div class="tile-top">
+            <span class="tile-emoji">🍽️</span>
+            <span class="tile-count" id="tileTotalProdsBadge">162 PLATOS</span>
+          </div>
+          <div class="tile-bottom">
+            <div class="tile-title">TODA LA CARTA</div>
+            <div class="tile-sub">Ver todos los productos</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">
+        <span>🍧 Categorías de la Carta (Toca un cuadro grande)</span>
+      </div>
+
+      <!-- CUADRÍCULA DE CATEGORÍAS EN CUADROS GRANDES ESTILO WINDOWS MOBILE -->
+      <div class="metro-grid" id="categoriesMetroGrid"></div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 2: PRODUCTOS EN CUADROS GRANDES (AL TOCAR UNA CATEGORÍA)  -->
+    <!-- ================================================================== -->
+    <section id="view-category-products" style="display:none">
+      <div class="category-banner">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#facc15;text-transform:uppercase">EXPLORANDO CATEGORÍA</div>
+          <h2 id="activeCategoryTitle" style="font-size:22px;font-weight:800">🍨 HELADOS</h2>
+        </div>
+        <button class="btn-home-tiles" onclick="showHomeTiles()">
+          ⊞ Ver Todos los Cuadros
+        </button>
+      </div>
+
+      <div class="products-metro-grid" id="productsMetroGrid"></div>
+    </section>
+
+    <!-- ================================================================== -->
+    <!-- PANTALLA 3: SEGUIMIENTO EN VIVO DEL PEDIDO DE LA MESA              -->
+    <!-- ================================================================== -->
+    <section id="view-live-order" style="display:none">
+      <div class="category-banner">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#4ade80;text-transform:uppercase">SEGUIMIENTO EN TIEMPO REAL</div>
+          <h2 style="font-size:21px;font-weight:800">🔥 Estado de tu Pedido en Cocina</h2>
+        </div>
+        <button class="btn-home-tiles" onclick="showHomeTiles()">
+          ⊞ Volver al Menú
+        </button>
+      </div>
+      <div id="liveOrderContent"></div>
+    </section>
+  </div>
+
+  <!-- BARRA FLOTANTE INFERIOR DEL CARRITO -->
+  <div id="cartBar" class="metro-appbar" style="display:none">
+    <div class="appbar-inner">
+      <div onclick="openCartModal()" style="cursor:pointer">
+        <div style="font-size:12px;color:#fef08a;font-weight:700">
+          🛒 <span id="cartCount">0</span> producto(s) seleccionados • <span id="cartTableLabel">Mesa 6</span>
+        </div>
+        <div style="font-size:20px;font-weight:800;color:#fff" id="cartTotalText">S/ 0.00</div>
+      </div>
+      <button class="appbar-btn" onclick="openCartModal()">
+        Confirmar y Pedir ➔
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 1: CONFIRMAR PEDIDO + PIN DE 2 DÍGITOS DE LA MESA -->
+  <div id="cartModal" class="modal-backdrop">
+    <div class="metro-modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.15)">
+        <h3 style="font-size:18px;font-weight:800">🚀 Enviar Pedido a Cocina — <span id="modalTableTitle" style="color:#facc15">Mesa 6</span></h3>
+        <button onclick="closeCartModal()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;width:34px;height:34px;border-radius:6px;font-size:16px;cursor:pointer">✕</button>
+      </div>
+
+      <div id="cartItemsList" style="max-height:240px;overflow-y:auto;margin-bottom:12px"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:18px;font-weight:800;border-top:1px solid rgba(255,255,255,0.15)">
+        <span>Total del Pedido:</span>
+        <span id="modalCartTotal" style="color:#facc15">S/ 0.00</span>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:700;color:#a7f3d0;display:block;margin-bottom:4px">Tu nombre (opcional):</label>
+        <input type="text" id="customerNameInput" class="metro-input" placeholder="Ej. Carlos, Familia Gómez..." />
+      </div>
+
+      <div class="pin-box">
+        <label style="display:block;font-size:12px;font-weight:800;color:#fef08a;margin-bottom:8px">
+          🔒 PIN de 2 dígitos impreso en el QR de tu mesa:
+        </label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" id="tablePinInput" maxlength="4" class="pin-input" placeholder="00" />
+          <button type="button" onclick="fillDemoPin()" style="background:rgba(250,204,21,0.2);color:#fef08a;border:1px solid #facc15;padding:10px 12px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer">
+            ✨ Autocompletar PIN (<span id="hintPinVal">--</span>)
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-send-metro" id="btnSendOrder" onclick="submitQrOrder()">
+        ✅ Confirmar y Enviar a Cocina Ahora
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: SOLICITAR LA CUENTA + REGISTRO AUTOMÁTICO DE DNI/RUC EN CAJA -->
+  <div id="serviceModal" class="modal-backdrop">
+    <div class="metro-modal" style="max-width:460px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:18px;font-weight:800">🧾 Solicitar la Cuenta en Mesa</h3>
+        <button onclick="document.getElementById('serviceModal').classList.remove('open')" style="background:rgba(255,255,255,0.15);color:#fff;border:none;width:34px;height:34px;border-radius:6px;cursor:pointer">✕</button>
+      </div>
+      <p style="font-size:12.5px;color:#bbf7d0;margin-bottom:12px;line-height:1.4">
+        Ingresa tu <strong>DNI o RUC</strong> aquí. Tus datos se grabarán automáticamente en Caja para que tu <strong>Boleta o Factura Electrónica</strong> salga lista al instante:
+      </p>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:11.5px;font-weight:800;color:#fef08a;display:block;margin-bottom:4px">1. Tipo de Comprobante:</label>
+        <select id="billVoucherPref" class="metro-input" style="background:#071a12;font-weight:700" onchange="onCustomerVoucherPrefChange()">
+          <option value="Boleta Electrónica">Boleta de Venta Electrónica (DNI)</option>
+          <option value="Factura Electrónica">Factura Electrónica (RUC 11 dígitos)</option>
+          <option value="Nota de Venta">Nota de Venta</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:11.5px;font-weight:800;color:#fef08a;display:block;margin-bottom:4px">2. Número de DNI (8 dígitos) o RUC (11 dígitos):</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="billDocNum" class="metro-input" maxlength="11" inputmode="numeric" placeholder="Ingresa tu DNI o RUC..." oninput="onCustomerDocInput(this.value)" />
+          <button type="button" id="btnQrLookupDoc" onclick="lookupCustomerDocQr()" style="background:#facc15;color:#052e16;border:none;padding:0 14px;border-radius:6px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">
+            🔍 Buscar
+          </button>
+        </div>
+        <div id="qrDocLookupHint" style="font-size:11px;color:#86efac;margin-top:4px;display:none"></div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:11.5px;font-weight:800;color:#a7f3d0;display:block;margin-bottom:4px">3. Nombre Completo o Razón Social:</label>
+        <input type="text" id="billClientName" class="metro-input" placeholder="Se autocompleta con tu DNI/RUC o escríbelo aquí" />
+      </div>
+
+      <div style="margin-bottom:10px" id="billAddressWrap">
+        <label style="font-size:11.5px;font-weight:800;color:#a7f3d0;display:block;margin-bottom:4px">4. Dirección Fiscal (Opcional / Automático con RUC):</label>
+        <input type="text" id="billClientAddress" class="metro-input" placeholder="Dirección para el comprobante" />
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:11.5px;font-weight:800;color:#fef08a;display:block;margin-bottom:4px">5. ¿Cómo deseas pagar en tu mesa?</label>
+        <select id="billPaymentMethod" class="metro-input" style="background:#071a12;font-weight:700">
+          <option value="Efectivo">💵 Efectivo</option>
+          <option value="Yape / Plin">📱 Yape / Plin</option>
+          <option value="Tarjeta POS">💳 Tarjeta Visa / Mastercard (Traer POS)</option>
+          <option value="Transferencia">🏦 Transferencia</option>
+        </select>
+      </div>
+
+      <button class="btn-send-metro" id="btnSendBillReq" onclick="requestBillFromQr()">
+        🧾 Grabar mis Datos y Pedir la Cuenta Ahora
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: CONFIRMACIÓN DE LLAMADO AL MOZO EN PANTALLA -->
+  <div id="waiterConfirmModal" class="modal-backdrop">
+    <div class="metro-modal" style="max-width:400px;text-align:center">
+      <div style="width:74px;height:74px;border-radius:50%;background:#facc15;color:#052e16;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 12px">
+        🔔
+      </div>
+      <div style="font-size:12px;font-weight:800;color:#fef08a;letter-spacing:0.06em">¡AVISO ENVIADO EN TIEMPO REAL!</div>
+      <div id="qrWaiterModalTable" style="display:inline-block;background:#15803d;border:2px solid #4ade80;color:#fff;font-size:24px;font-weight:800;padding:6px 22px;border-radius:6px;margin:10px 0">
+        MESA 6
+      </div>
+      <p id="qrWaiterModalText" style="font-size:14.5px;color:#e2e8f0;margin-bottom:18px;line-height:1.45">
+        La Mesa 6 está solicitando el llamado al mozo. ¡El mensaje ya apareció en la pantalla principal!
+      </p>
+      <button class="btn-send-metro" onclick="document.getElementById('waiterConfirmModal').classList.remove('open')">
+        Entendido ✓
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 4: ALERTA EN EL CELULAR DEL CLIENTE CUANDO COCINA PREPARA O DESPACHA SU PEDIDO -->
+  <div id="kitchenCustomerAlertModal" class="modal-backdrop">
+    <div class="metro-modal" id="kitchenAlertBox" style="max-width:410px;text-align:center;border-width:3px">
+      <div id="kitchenAlertIconCircle" style="width:82px;height:82px;border-radius:50%;background:#ea580c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 14px;box-shadow:0 8px 25px rgba(0,0,0,0.4)">
+        🔥
+      </div>
+      <div id="kitchenAlertBadge" style="font-size:12px;font-weight:800;color:#fef08a;letter-spacing:0.06em;text-transform:uppercase">
+        ACTUALIZACIÓN DE COCINA EN VIVO
+      </div>
+      <h3 id="kitchenAlertTitle" style="font-size:21px;font-weight:800;color:#fff;margin:8px 0;line-height:1.2">
+        ¡Tu pedido ya está siendo preparado!
+      </h3>
+      <div id="kitchenAlertTablePill" style="display:inline-block;background:rgba(255,255,255,0.14);border:1.5px solid rgba(255,255,255,0.3);color:#facc15;font-size:15px;font-weight:800;padding:5px 16px;border-radius:6px;margin:6px 0 12px">
+        MESA 1
+      </div>
+      <p id="kitchenAlertMessage" style="font-size:15px;color:#f1f5f9;margin-bottom:14px;line-height:1.45;font-weight:600">
+        Cocina acaba de iniciar la preparación de tu pedido.
+      </p>
+      <div id="kitchenAlertItemsList" style="background:rgba(0,0,0,0.28);border-radius:6px;padding:10px 12px;margin-bottom:18px;text-align:left;font-size:14px;font-weight:700;color:#fef08a"></div>
+      <button class="btn-send-metro" id="kitchenAlertBtn" onclick="closeKitchenCustomerAlert()">
+        🔥 ¡Genial, ver mi pedido!
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    let currentTableId = parseInt(params.get('mesa') || '6', 10);
+    let appState = null;
+    let lastVersion = '';
+    let selectedCategory = 'TODOS';
+    let cart = {}; // productId -> { product, qty, comment }
+    let knownItemStates = {}; // itemId -> state
+    let lastKnownOrderUpdate = '';
+    let initialStatesSeeded = false;
+    let trackedTableId = currentTableId;
+
+    // Configuración visual de cada Cuadro Grande (Windows Mobile / Metro Tile)
+    const categoryTileConfig = {
+      'HELADOS':           { icon: '🍨', color: 'c-helados',  wide: true,  sub: 'Artesanales y exóticos de la selva' },
+      'CREMOLADA':         { icon: '🍧', color: 'c-cremo',    wide: true,  sub: 'Pura fruta tropical congelada' },
+      'JACK FRUIT':        { icon: '🌴', color: 'c-jack',     wide: true,  sub: 'Especialidades de la casa con Jackfruit' },
+      'PACO':              { icon: '🐟', color: 'c-paco',     wide: false, sub: 'Paco frito, chilcano y más' },
+      'TILAPIA':           { icon: '🐟', color: 'c-tilapia',  wide: false, sub: 'Dúos, leche de tigre y platos' },
+      'DONCELLA':          { icon: '🐟', color: 'c-paco',     wide: false, sub: 'Pescado amazónico fresco' },
+      'CECINA':            { icon: '🥩', color: 'c-cecina',   wide: false, sub: 'Juanes y cecina regional' },
+      'PORCIONES':         { icon: '🍟', color: 'c-porcion',  wide: false, sub: 'Patacones, yucas y guarniciones' },
+      'REFRESCO':          { icon: '🍹', color: 'c-refresco', wide: false, sub: 'Refrescos naturales en jarra y vaso' },
+      'JUGOS':             { icon: '🥤', color: 'c-jugos',    wide: false, sub: 'Jugos de frutas regionales' },
+      'FROZEN':            { icon: '🧊', color: 'c-frozen',   wide: false, sub: 'Bebidas frappé refrescantes' },
+      'FRAPUCHINO':        { icon: '☕', color: 'c-cafe',     wide: false, sub: 'Frapuchinos de café y cacao' },
+      'BEBIDAS':           { icon: '🍾', color: 'c-refresco', wide: false, sub: 'Aguas, gaseosas y cervezas' },
+      'DAIQUIRI':          { icon: '🍸', color: 'c-licor',    wide: false, sub: 'Coctelería tropical' },
+      'LICORES':           { icon: '🍷', color: 'c-licor',    wide: false, sub: 'Licor artesanal de Jackfruit' },
+      'BEBIDAS CALIENTES': { icon: '🍵', color: 'c-cafe',     wide: false, sub: 'Café pasado e infusiones' },
+      'MATES':             { icon: '🌿', color: 'c-tienda',   wide: false, sub: 'Mates e infusiones naturales' },
+      'PRODUCTOS':         { icon: '🛍️', color: 'c-tienda',   wide: true,  sub: 'Derivados, néctares y delicias Jackfruit' },
+      'PULPA':             { icon: '🥭', color: 'c-porcion',  wide: false, sub: 'Pulpas de fruta natural' },
+      'FRUTA':             { icon: '🍍', color: 'c-jack',     wide: false, sub: 'Frutas y plantas tropicales' },
+      'POLLO':             { icon: '🍗', color: 'c-paco',     wide: false, sub: 'Platos con pollo' },
+      'CHANCHO':           { icon: '🍖', color: 'c-cecina',   wide: false, sub: 'Platos con chancho' },
+      'HUEVO':             { icon: '🍳', color: 'c-porcion',  wide: false, sub: 'Adicionales' },
+      'OTROS':             { icon: '⭐', color: 'c-all',      wide: false, sub: 'Deshidratados, aceites y más' }
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 3000);
+    }
+
+    function playCustomerMobileSound(mode) {
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate(mode === 'ready' ? [280, 120, 280, 120, 350] : [220, 100, 220]);
+        }
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (mode === 'ready') {
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.14);
+          osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.28);
+          osc.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.42);
+          gain.gain.setValueAtTime(0.24, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.7);
+        } else {
+          osc.frequency.setValueAtTime(440, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.16);
+          gain.gain.setValueAtTime(0.22, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.5);
+        }
+      } catch (e) {}
+    }
+
+    function checkKitchenStatusAlerts() {
+      if (!appState || !appState.orders) return;
+      if (trackedTableId !== currentTableId) {
+        trackedTableId = currentTableId;
+        knownItemStates = {};
+        lastKnownOrderUpdate = '';
+        initialStatesSeeded = false;
+      }
+
+      const activeOrder = appState.orders.find(o => o.tableId === currentTableId && o.status === 'open');
+      if (!activeOrder || !activeOrder.items) {
+        knownItemStates = {};
+        lastKnownOrderUpdate = '';
+        initialStatesSeeded = true;
+        return;
+      }
+
+      const newlyPreparing = [];
+      const newlyReady = [];
+
+      activeOrder.items.forEach(it => {
+        const prev = knownItemStates[it.id];
+        if (initialStatesSeeded && prev && prev !== it.state) {
+          if (it.state === 'preparing') newlyPreparing.push(it);
+          else if (it.state === 'ready') newlyReady.push(it);
+        }
+        knownItemStates[it.id] = it.state;
+      });
+
+      if (initialStatesSeeded && newlyReady.length === 0 && newlyPreparing.length === 0 &&
+          lastKnownOrderUpdate && activeOrder.updatedAt !== lastKnownOrderUpdate) {
+        const allReady = activeOrder.items.filter(i => i.state === 'ready');
+        const allPrep = activeOrder.items.filter(i => i.state === 'preparing');
+        if (allReady.length > 0) newlyReady.push(...allReady);
+        else if (allPrep.length > 0) newlyPreparing.push(...allPrep);
+      }
+
+      lastKnownOrderUpdate = activeOrder.updatedAt || '';
+      initialStatesSeeded = true;
+
+      if (newlyReady.length > 0) {
+        showKitchenCustomerAlert('ready', newlyReady);
+      } else if (newlyPreparing.length > 0) {
+        showKitchenCustomerAlert('preparing', newlyPreparing);
+      }
+    }
+
+    function showKitchenCustomerAlert(mode, items) {
+      playCustomerMobileSound(mode);
+      const modal = document.getElementById('kitchenCustomerAlertModal');
+      const box = document.getElementById('kitchenAlertBox');
+      const icon = document.getElementById('kitchenAlertIconCircle');
+      const badge = document.getElementById('kitchenAlertBadge');
+      const title = document.getElementById('kitchenAlertTitle');
+      const tablePill = document.getElementById('kitchenAlertTablePill');
+      const msg = document.getElementById('kitchenAlertMessage');
+      const listEl = document.getElementById('kitchenAlertItemsList');
+      const btn = document.getElementById('kitchenAlertBtn');
+
+      tablePill.textContent = 'MESA ' + currentTableId;
+      listEl.innerHTML = items.map(i => `<div style="padding:3px 0">• ${i.qty}x ${i.name}</div>`).join('');
+
+      if (mode === 'preparing') {
+        box.style.borderColor = '#fb923c';
+        icon.style.background = 'linear-gradient(135deg, #ea580c, #d97706)';
+        icon.textContent = '👨‍🍳';
+        badge.textContent = '🔥 ¡COCINA EN ACCIÓN!';
+        title.textContent = '¡Tu pedido ya está siendo preparado!';
+        msg.textContent = `Nuestro equipo de cocina acaba de poner en preparación tu pedido para la Mesa ${currentTableId}:`;
+        btn.style.background = '#facc15';
+        btn.style.color = '#052e16';
+        btn.textContent = '🔥 ¡Genial, ver estado en vivo!';
+      } else {
+        box.style.borderColor = '#4ade80';
+        icon.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+        icon.textContent = '🍽️';
+        badge.textContent = '🚀 ¡PEDIDO DESPACHADO AL MOZO!';
+        title.textContent = '¡Tu pedido ya está en camino a tu mesa!';
+        msg.textContent = `¡Prepárate! Tu pedido de la Mesa ${currentTableId} ya está listo y el mozo lo lleva en camino hacia ti:`;
+        btn.style.background = '#4ade80';
+        btn.style.color = '#052e16';
+        btn.textContent = '✅ ¡Excelente, muchas gracias!';
+      }
+
+      modal.classList.add('open');
+    }
+
+    function closeKitchenCustomerAlert() {
+      document.getElementById('kitchenCustomerAlertModal').classList.remove('open');
+      openLiveOrderView();
+    }
+
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/state');
+        appState = await res.json();
+        lastVersion = appState.version;
+        checkKitchenStatusAlerts();
+        updateTableUI();
+        renderCategoryTiles();
+        renderProductsGrid();
+        renderLiveOrder();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function pollVersion() {
+      if (document.hidden) return; // Ahorro inteligente de tráfico en alta concurrencia (+1,000 clientes) cuando el celular bloquea pantalla
+      try {
+        const res = await fetch('/api/version');
+        const data = await res.json();
+        if (data.version && data.version !== lastVersion) {
+          await fetchState();
+        }
+      } catch (e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) pollVersion();
+    });
+
+    function getCurrentTable() {
+      if (!appState || !appState.tables) return null;
+      return appState.tables.find(t => t.id === currentTableId) || appState.tables[0];
+    }
+
+    function updateTableUI() {
+      const t = getCurrentTable();
+      if (!t) return;
+      currentTableId = t.id;
+      document.getElementById('tableBadgeText').textContent = t.name.toUpperCase();
+      document.getElementById('cartTableLabel').textContent = t.name;
+      document.getElementById('modalTableTitle').textContent = t.name;
+      document.getElementById('hintPinVal').textContent = t.pin;
+
+      const activeProds = (appState.products || []).filter(p => p.active);
+      document.getElementById('tileTotalProdsBadge').textContent = activeProds.length + ' PLATOS';
+
+      const activeOrder = (appState.orders || []).find(o => o.tableId === currentTableId && o.status === 'open');
+      if (activeOrder && activeOrder.items && activeOrder.items.length > 0) {
+        const totalQty = activeOrder.items.reduce((s, i) => s + i.qty, 0);
+        document.getElementById('tileOrderCountBadge').textContent = totalQty + ' PEDIDOS';
+        document.getElementById('tileOrderSubText').textContent = 'Total: S/ ' + Number(activeOrder.total).toFixed(2) + ' • Ver cocina';
+      } else {
+        document.getElementById('tileOrderCountBadge').textContent = 'SIN PEDIDOS';
+        document.getElementById('tileOrderSubText').textContent = 'Toca para ver estado';
+      }
+    }
+
+    function showHomeTiles() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('view-home-tiles').style.display = 'block';
+      document.getElementById('view-category-products').style.display = 'none';
+      document.getElementById('view-live-order').style.display = 'none';
+      document.getElementById('btnBackHome').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openCategoryTile(cat) {
+      selectedCategory = cat;
+      const cfg = categoryTileConfig[cat] || { icon: '🍽️' };
+      document.getElementById('activeCategoryTitle').textContent = `${cfg.icon || '🍽️'} ${cat === 'TODOS' ? 'TODA LA CARTA JACKFRUIT' : cat}`;
+      document.getElementById('view-home-tiles').style.display = 'none';
+      document.getElementById('view-category-products').style.display = 'block';
+      document.getElementById('view-live-order').style.display = 'none';
+      document.getElementById('btnBackHome').style.display = 'flex';
+      renderProductsGrid();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openLiveOrderView() {
+      document.getElementById('view-home-tiles').style.display = 'none';
+      document.getElementById('view-category-products').style.display = 'none';
+      document.getElementById('view-live-order').style.display = 'block';
+      document.getElementById('btnBackHome').style.display = 'flex';
+      renderLiveOrder();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function onSearchInput() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (q.length > 0) {
+        selectedCategory = 'TODOS';
+        document.getElementById('activeCategoryTitle').textContent = `🔍 Resultados para "${q}"`;
+        document.getElementById('view-home-tiles').style.display = 'none';
+        document.getElementById('view-category-products').style.display = 'block';
+        document.getElementById('view-live-order').style.display = 'none';
+        document.getElementById('btnBackHome').style.display = 'flex';
+        renderProductsGrid();
+      } else {
+        showHomeTiles();
+      }
+    }
+
+    function renderCategoryTiles() {
+      if (!appState) return;
+      const activeProds = appState.products.filter(p => p.active);
+      const counts = {};
+      activeProds.forEach(p => {
+        counts[p.category] = (counts[p.category] || 0) + 1;
+      });
+
+      const priorityOrder = [
+        'HELADOS', 'CREMOLADA', 'JACK FRUIT', 'PACO', 'TILAPIA', 'DONCELLA',
+        'CECINA', 'PORCIONES', 'REFRESCO', 'JUGOS', 'FROZEN', 'FRAPUCHINO',
+        'BEBIDAS', 'DAIQUIRI', 'LICORES', 'BEBIDAS CALIENTES', 'MATES', 'PRODUCTOS', 'PULPA', 'FRUTA', 'OTROS'
+      ];
+
+      const cats = Object.keys(counts).sort((a, b) => {
+        const ia = priorityOrder.indexOf(a);
+        const ib = priorityOrder.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      const grid = document.getElementById('categoriesMetroGrid');
+      grid.innerHTML = cats.map(cat => {
+        const cfg = categoryTileConfig[cat] || { icon: '🍽️', color: 'c-order', wide: false, sub: 'Platos y bebidas' };
+        const wideCls = cfg.wide ? 'tile-wide' : '';
+        return `
+          <div class="metro-tile ${cfg.color} ${wideCls}" onclick="openCategoryTile('${cat}')">
+            <div class="tile-icon-bg">${cfg.icon}</div>
+            <div class="tile-top">
+              <span class="tile-emoji">${cfg.icon}</span>
+              <span class="tile-count">${counts[cat]} OPCIONES</span>
+            </div>
+            <div class="tile-bottom">
+              <div class="tile-title">${cat}</div>
+              <div class="tile-sub">${cfg.sub}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderProductsGrid() {
+      if (!appState) return;
+      const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+      const filtered = appState.products.filter(p => {
+        if (!p.active) return false;
+        if (selectedCategory !== 'TODOS' && p.category !== selectedCategory) return false;
+        if (q && !p.name.toLowerCase().includes(q) && !p.category.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      const grid = document.getElementById('productsMetroGrid');
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#a7f3d0">No se encontraron productos con ese filtro.</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => {
+        const inCart = cart[p.id];
+        const qty = inCart ? inCart.qty : 0;
+        const cfg = categoryTileConfig[p.category] || { icon: '🍽️' };
+
+        return `
+          <div class="prod-tile ${qty > 0 ? 'in-cart' : ''}" onclick="handleTileTap(event, ${p.id})">
+            <div>
+              <div class="prod-tile-top">
+                <span class="prod-tile-cat">${cfg.icon} ${p.category}</span>
+                ${qty > 0 ? `<div class="prod-tile-qty-badge">${qty}</div>` : ''}
+              </div>
+              <div class="prod-tile-name">${p.name}</div>
+            </div>
+
+            <div class="prod-tile-bottom">
+              <div class="prod-tile-price">S/ ${Number(p.price).toFixed(2)}</div>
+              ${qty === 0 ? `
+                <button class="tile-add-btn" onclick="event.stopPropagation();changeQty(${p.id}, 1)">+ Pedir</button>
+              ` : `
+                <div class="tile-qty-controls" onclick="event.stopPropagation()">
+                  <button class="tile-step-btn" onclick="changeQty(${p.id}, -1)">−</button>
+                  <button class="tile-step-btn" onclick="changeQty(${p.id}, 1)">+</button>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleTileTap(e, prodId) {
+      changeQty(prodId, 1);
+    }
+
+    function changeQty(prodId, delta) {
+      const prod = appState.products.find(p => p.id === prodId);
+      if (!prod) return;
+      if (!cart[prodId]) {
+        cart[prodId] = { product: prod, qty: 0, comment: '' };
+      }
+      cart[prodId].qty += delta;
+      if (cart[prodId].qty <= 0) {
+        delete cart[prodId];
+      }
+      updateCartBar();
+      renderProductsGrid();
+      if (document.getElementById('cartModal').classList.contains('open')) {
+        renderCartModalItems();
+      }
+    }
+
+    function updateCartNote(prodId, val) {
+      if (cart[prodId]) cart[prodId].comment = val;
+    }
+
+    function updateCartBar() {
+      const entries = Object.values(cart);
+      const totalQty = entries.reduce((acc, it) => acc + it.qty, 0);
+      const totalMoney = entries.reduce((acc, it) => acc + (it.qty * it.product.price), 0);
+
+      const bar = document.getElementById('cartBar');
+      if (totalQty > 0) {
+        bar.style.display = 'block';
+        document.getElementById('cartCount').textContent = totalQty;
+        document.getElementById('cartTotalText').textContent = 'S/ ' + totalMoney.toFixed(2);
+      } else {
+        bar.style.display = 'none';
+        closeCartModal();
+      }
+      document.getElementById('modalCartTotal').textContent = 'S/ ' + totalMoney.toFixed(2);
+    }
+
+    function openCartModal() {
+      renderCartModalItems();
+      document.getElementById('cartModal').classList.add('open');
+    }
+
+    function closeCartModal() {
+      document.getElementById('cartModal').classList.remove('open');
+    }
+
+    function openServiceModal() {
+      const t = getCurrentTable();
+      const activeOrder = appState && appState.orders
+        ? appState.orders.find(o => o.tableId === currentTableId && o.status === 'open')
+        : null;
+
+      if (activeOrder) {
+        if (activeOrder.billingDocNumber && !document.getElementById('billDocNum').value) {
+          document.getElementById('billDocNum').value = activeOrder.billingDocNumber;
+        }
+        if (activeOrder.billingClientName && !document.getElementById('billClientName').value) {
+          document.getElementById('billClientName').value = activeOrder.billingClientName;
+        }
+        if (activeOrder.billingClientAddress && !document.getElementById('billClientAddress').value) {
+          document.getElementById('billClientAddress').value = activeOrder.billingClientAddress;
+        }
+      } else if (t) {
+        if (t.billDocNumber && !document.getElementById('billDocNum').value) {
+          document.getElementById('billDocNum').value = t.billDocNumber;
+        }
+        if (t.billClientName && !document.getElementById('billClientName').value) {
+          document.getElementById('billClientName').value = t.billClientName;
+        }
+      }
+
+      document.getElementById('serviceModal').classList.add('open');
+    }
+
+    function onCustomerVoucherPrefChange() {
+      const val = document.getElementById('billVoucherPref').value;
+      const docInput = document.getElementById('billDocNum');
+      if (val.includes('Factura')) {
+        docInput.placeholder = 'Ingresa tu RUC de 11 dígitos (Ej. 20604377405)';
+      } else {
+        docInput.placeholder = 'Ingresa tu DNI de 8 dígitos o RUC';
+      }
+    }
+
+    let lastQrLookedUpDoc = '';
+    function onCustomerDocInput(val) {
+      const clean = (val || '').replace(/\D/g, '');
+      if (clean !== val) {
+        document.getElementById('billDocNum').value = clean;
+      }
+      if (clean.length === 11) {
+        document.getElementById('billVoucherPref').value = 'Factura Electrónica';
+      } else if (clean.length === 8) {
+        if (document.getElementById('billVoucherPref').value === 'Factura Electrónica') {
+          document.getElementById('billVoucherPref').value = 'Boleta Electrónica';
+        }
+      }
+      if ((clean.length === 8 || clean.length === 11) && clean !== lastQrLookedUpDoc) {
+        lookupCustomerDocQr(true);
+      }
+    }
+
+    async function lookupCustomerDocQr(isAuto = false) {
+      const num = document.getElementById('billDocNum').value.trim();
+      const hint = document.getElementById('qrDocLookupHint');
+      if (num.length !== 8 && num.length !== 11) {
+        if (!isAuto) showToast('Ingresa 8 dígitos (DNI) o 11 dígitos (RUC) para buscar');
+        return;
+      }
+
+      lastQrLookedUpDoc = num;
+      const btn = document.getElementById('btnQrLookupDoc');
+      btn.disabled = true;
+      btn.textContent = '⏳...';
+      hint.style.display = 'block';
+      hint.style.color = '#fef08a';
+      hint.textContent = 'Consultando en SUNAT / RENIEC en vivo...';
+
+      try {
+        const res = await fetch('/api/fe/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            docType: num.length === 11 ? 'ruc' : 'dni',
+            number: num
+          })
+        });
+        const data = await res.json();
+        if (data.ok && data.name) {
+          document.getElementById('billClientName').value = data.name;
+          if (data.address) {
+            document.getElementById('billClientAddress').value = data.address;
+          }
+          if (num.length === 11) {
+            document.getElementById('billVoucherPref').value = 'Factura Electrónica';
+          }
+          hint.style.color = '#4ade80';
+          hint.textContent = `✓ Encontrado: ${data.name}`;
+        } else {
+          hint.style.color = '#fca5a5';
+          hint.textContent = 'Puedes escribir tu Nombre o Razón Social manualmente abajo.';
+        }
+      } catch (e) {
+        hint.style.display = 'none';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Buscar';
+      }
+    }
+
+    function fillDemoPin() {
+      const t = getCurrentTable();
+      if (t) document.getElementById('tablePinInput').value = t.pin;
+    }
+
+    function renderCartModalItems() {
+      const entries = Object.values(cart);
+      const container = document.getElementById('cartItemsList');
+      container.innerHTML = entries.map(it => `
+        <div style="padding:10px 0;border-bottom:1px dashed rgba(255,255,255,0.15)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div>
+              <div style="font-weight:800;font-size:14px">${it.product.name}</div>
+              <div style="font-size:12px;color:#a7f3d0">S/ ${Number(it.product.price).toFixed(2)} c/u</div>
+            </div>
+            <div class="tile-qty-controls">
+              <button class="tile-step-btn" onclick="changeQty(${it.product.id}, -1)">−</button>
+              <span style="font-weight:800;min-width:22px;text-align:center">${it.qty}</span>
+              <button class="tile-step-btn" onclick="changeQty(${it.product.id}, 1)">+</button>
+            </div>
+          </div>
+          <input type="text" class="metro-input" style="margin-top:6px;padding:7px 10px;font-size:12px" placeholder="Nota para cocina (ej. sin hielo, ají aparte)..." value="${it.comment || ''}" oninput="updateCartNote(${it.product.id}, this.value)" />
+        </div>
+      `).join('');
+    }
+
+    async function submitQrOrder() {
+      const entries = Object.values(cart);
+      if (entries.length === 0) return;
+
+      const pin = document.getElementById('tablePinInput').value.trim();
+      if (!pin) {
+        showToast('🔒 Ingresa el PIN de 2 dígitos de tu mesa (o pulsa Autocompletar PIN)');
+        return;
+      }
+
+      const btn = document.getElementById('btnSendOrder');
+      btn.disabled = true;
+      btn.textContent = 'Enviando a Cocina...';
+
+      try {
+        const res = await fetch('/api/qr/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tableId: currentTableId,
+            pin: pin,
+            customerName: document.getElementById('customerNameInput').value.trim() || 'Cliente QR',
+            items: entries.map(e => ({
+              productId: e.product.id,
+              qty: e.qty,
+              comment: e.comment
+            }))
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          showToast(data.error || 'Error al enviar pedido');
+        } else {
+          cart = {};
+          updateCartBar();
+          closeCartModal();
+          await fetchState();
+          openLiveOrderView();
+          showToast('✅ ¡Pedido enviado directo a Cocina y Caja!');
+        }
+      } catch (e) {
+        showToast('Error de conexión con el servidor.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✅ Confirmar y Enviar a Cocina Ahora';
+      }
+    }
+
+    function renderLiveOrder() {
+      if (!appState) return;
+      const activeOrder = appState.orders.find(o => o.tableId === currentTableId && o.status === 'open');
+      const container = document.getElementById('liveOrderContent');
+
+      if (!activeOrder || !activeOrder.items || activeOrder.items.length === 0) {
+        container.innerHTML = `
+          <div style="background:rgba(255,255,255,0.06);border:2px dashed rgba(255,255,255,0.2);border-radius:8px;padding:36px 20px;text-align:center">
+            <div style="font-size:44px;margin-bottom:10px">🍽️</div>
+            <h3 style="font-size:18px;margin-bottom:6px">Aún no tienes pedidos activos en la Mesa ${currentTableId}</h3>
+            <p style="font-size:13px;color:#a7f3d0;margin-bottom:18px">
+              Toca cualquiera de los cuadros grandes de categorías para hacer tu pedido sin esperar al mozo.
+            </p>
+            <button class="btn-send-metro" style="max-width:280px" onclick="showHomeTiles()">⊞ Ir a los Cuadros de la Carta</button>
+          </div>
+        `;
+        return;
+      }
+
+      const stateLabels = {
+        'pending':   { text: '⏳ En Cola de Cocina', cls: 'state-pending' },
+        'preparing': { text: '🔥 Preparándose', cls: 'state-preparing' },
+        'ready':     { text: '✅ ¡Listo! En camino a tu mesa', cls: 'state-ready' },
+        'delivered': { text: '🍽️ Entregado en mesa', cls: 'state-delivered' }
+      };
+
+      container.innerHTML = `
+        <div style="background:#0d281c;border:2px solid #4ade80;border-radius:8px;padding:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.12)">
+            <div>
+              <span style="background:#facc15;color:#052e16;font-size:11px;font-weight:800;padding:3px 8px;border-radius:4px">
+                COMANDA #${activeOrder.code}
+              </span>
+              <h3 style="font-size:18px;margin-top:6px">Mesa ${currentTableId} • ${activeOrder.customerName}</h3>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:#a7f3d0">Total Acumulado</div>
+              <div style="font-size:22px;font-weight:800;color:#facc15">S/ ${Number(activeOrder.total).toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+            ${activeOrder.items.map(it => {
+              const st = stateLabels[it.state] || stateLabels['pending'];
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);padding:12px;border-radius:6px;gap:10px">
+                  <div>
+                    <div style="font-weight:800;font-size:15px">${it.qty}x ${it.name}</div>
+                    ${it.comment ? `<div style="font-size:12px;color:#fde047">Nota: ${it.comment}</div>` : ''}
+                    <div style="font-size:12px;color:#a7f3d0">S/ ${Number(it.subtotal).toFixed(2)}</div>
+                  </div>
+                  <span class="state-pill ${st.cls}">${st.text}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="btn-send-metro" onclick="showHomeTiles()">
+              + Pedir más platos
+            </button>
+            <button class="btn-send-metro" style="background:#0284c7;color:#fff" onclick="openServiceModal()">
+              🧾 Pedir la Cuenta
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function sendTableAction(action, extra = {}) {
+      const btnBill = document.getElementById('btnSendBillReq');
+      if (action === 'request_bill' && btnBill) {
+        btnBill.disabled = true;
+        btnBill.textContent = '⏳ Grabando datos en Caja...';
+      }
+      try {
+        const res = await fetch('/api/qr/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tableId: currentTableId, action, ...extra })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          if (data.resolvedName && !document.getElementById('billClientName').value) {
+            document.getElementById('billClientName').value = data.resolvedName;
+          }
+          await fetchState();
+          document.getElementById('serviceModal').classList.remove('open');
+          document.getElementById('qrWaiterModalTable').textContent = 'MESA ' + currentTableId;
+          if (action === 'call_waiter') {
+            document.getElementById('qrWaiterModalText').textContent =
+              `La Mesa ${currentTableId} está solicitando el llamado al mozo. ¡El aviso ya apareció en la pantalla de Caja y Salón!`;
+          } else {
+            const finalName = data.resolvedName || extra.clientName || '';
+            const docInfo = extra.docNumber ? ` • Doc: ${extra.docNumber}${finalName ? ' (' + finalName + ')' : ''}` : '';
+            document.getElementById('qrWaiterModalText').innerHTML =
+              `¡Tus datos de facturación (<strong>${extra.voucherType || 'Boleta'}${docInfo}</strong>) ya quedaron grabados automáticamente en Caja! El mozo se acerca con tu cuenta lista.`;
+          }
+          document.getElementById('waiterConfirmModal').classList.add('open');
+        }
+      } catch (e) {
+        showToast('No se pudo enviar la alerta.');
+      } finally {
+        if (btnBill) {
+          btnBill.disabled = false;
+          btnBill.textContent = '🧾 Grabar mis Datos y Pedir la Cuenta Ahora';
+        }
+      }
+    }
+
+    function requestBillFromQr() {
+      const voucherType = document.getElementById('billVoucherPref').value;
+      const docNumber = document.getElementById('billDocNum').value.trim();
+      const clientName = document.getElementById('billClientName').value.trim();
+      const clientAddress = document.getElementById('billClientAddress').value.trim();
+      const paymentMethod = document.getElementById('billPaymentMethod').value;
+
+      if (voucherType.includes('Factura') && docNumber.length !== 11) {
+        showToast('⚠️ Para Factura Electrónica ingresa un RUC válido de 11 dígitos');
+        return;
+      }
+
+      sendTableAction('request_bill', {
+        voucherType,
+        docNumber,
+        clientName,
+        clientAddress,
+        paymentMethod
+      });
+    }
+
+    function openTableSelector() {
+      const num = prompt('Simulador QR — Ingresa el número de Mesa (1 al 28):', currentTableId);
+      if (!num) return;
+      const n = parseInt(num, 10);
+      if (n >= 1 && n <= 28) {
+        currentTableId = n;
+        const url = new URL(window.location.href);
+        url.searchParams.set('mesa', n);
+        window.history.replaceState({}, '', url);
+        updateTableUI();
+        renderLiveOrder();
+        showToast('Cambiado a Mesa ' + n);
+      }
+    }
+
+    fetchState();
+    setInterval(pollVersion, 1200);
+  </script>
+</body>
+</html>

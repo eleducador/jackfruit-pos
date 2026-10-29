@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jackfruit Río Negro E.I.R.L. — Sistema POS, Comandas KDS, QR y Facturación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR DE NAVEGACIÓN -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🌴</div>
+        <div>
+          <h2>JACKFRUIT POS</h2>
+          <span>RUC 20604377405 • Río Negro</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-btn active" id="nav-salon" onclick="switchView('salon')">
+          <span>🏛️ Salón, Mesas y Caja</span>
+          <span class="nav-pill" id="badge-salon">0</span>
+        </button>
+        <button class="nav-btn" id="nav-kds" onclick="switchView('kds')">
+          <span>👨‍🍳 Comandas (Cocina/Barra)</span>
+          <span class="nav-pill" id="badge-kds">0</span>
+        </button>
+        <button class="nav-btn" id="nav-simulador" onclick="switchView('simulador')">
+          <span>📱 Simulador QR + Cocina</span>
+          <span class="nav-pill">EN VIVO</span>
+        </button>
+        <button class="nav-btn" id="nav-qrs" onclick="switchView('qrs')">
+          <span>🖨️ Mesas & Códigos QR</span>
+          <span class="nav-pill">28</span>
+        </button>
+        <button class="nav-btn" id="nav-facturacion" onclick="switchView('facturacion')">
+          <span>🧾 Boletas, Facturas y Caja</span>
+          <span class="nav-pill" id="badge-vouchers">0</span>
+        </button>
+        <button class="nav-btn" id="nav-carta" onclick="switchView('carta')">
+          <span>📖 Carta y Precios</span>
+          <span class="nav-pill" id="badge-products">162</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div style="font-weight:800;color:#fff">JACKFRUIT RIO NEGRO E.I.R.L.</div>
+        <div>Régimen: Ley de la Amazonía (Exonerado IGV)</div>
+        <div>FE Conectado: <strong style="color:#facc15">facturaloconlwp.com</strong></div>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE TRABAJO PRINCIPAL -->
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="topbar-title" id="viewTitle">🏛️ Salón, Mesas y Caja Rápida</h1>
+          <div class="live-indicator">
+            <span class="live-dot"></span>
+            <span id="syncStatusText">Sincronizado en Tiempo Real</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-sm" onclick="toggleSound()" id="soundToggleBtn" title="Alertas sonoras de comandas y mozo">
+            🔊 Sonido: ON
+          </button>
+          <button class="btn btn-sm" onclick="openPosNewOrderModal('mostrador')">
+            🛍️ + Pedido Mostrador / Llevar
+          </button>
+          <button class="btn btn-sm" onclick="openPosNewOrderModal('delivery')">
+            🛵 + Pedido Delivery
+          </button>
+          <button class="btn btn-sm btn-accent" onclick="window.open('/qr.html?mesa=6', '_blank')">
+            📱 Abrir Carta QR (Mesa 6)
+          </button>
+          <button class="btn btn-sm" onclick="openSettingsModal()">
+            ⚙️ Ajustes FE
+          </button>
+        </div>
+      </header>
+
+      <!-- FRANJA GLOBAL DE ALERTAS EN TODAS LAS VISTAS -->
+      <div id="globalTopAlerts" class="global-top-alerts no-print"></div>
+
+      <main class="view-container">
+        <!-- VISTA 1: SALÓN, MESAS Y CAJA -->
+        <section id="view-salon">
+          <div class="kpi-grid" id="salonKpis"></div>
+          <div class="alerts-strip" id="waiterAlertsStrip"></div>
+
+          <div class="salon-layout">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-sm btn-primary" id="zoneBtn-all" onclick="setZoneFilter('all')">Todas las Mesas (28)</button>
+                  <button class="btn btn-sm" id="zoneBtn-main" onclick="setZoneFilter('Salón Principal')">Salón Principal (1-18)</button>
+                  <button class="btn btn-sm" id="zoneBtn-terrace" onclick="setZoneFilter('Salón 2 / Terraza')">Salón 2 / Terraza (19-28)</button>
+                  <button class="btn btn-sm" id="zoneBtn-external" onclick="setZoneFilter('external')">Mostrador / Delivery</button>
+                </div>
+                <div style="font-size:12px;color:var(--muted);display:flex;gap:12px">
+                  <span>⚪ Libre</span>
+                  <span>🟡 Ocupada</span>
+                  <span>🟢 Plato Listo para Llevar</span>
+                  <span>🔵 Pide Cuenta</span>
+                </div>
+              </div>
+              <div class="tables-grid" id="tablesGrid"></div>
+            </div>
+
+            <div class="order-panel" id="selectedTablePanel"></div>
+          </div>
+        </section>
+
+        <!-- VISTA 2: PANTALLA DE COMANDAS KDS (COCINA / HELADERÍA / BARRA) -->
+        <section id="view-kds" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;background:#fff;padding:12px 16px;border-radius:14px;border:1px solid var(--border)">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" id="kdsSt-all" onclick="setKdsStation('all')">🔥 Todas las Estaciones</button>
+              <button class="btn" id="kdsSt-heladeria" onclick="setKdsStation('heladeria')">🍨 Heladería, Cremoladas y Jugos</button>
+              <button class="btn" id="kdsSt-cocina" onclick="setKdsStation('cocina')">🍳 Cocina (Paco, Tilapia, Cecina, Porciones)</button>
+              <button class="btn" id="kdsSt-barra" onclick="setKdsStation('barra')">🍹 Barra, Bebidas y Productos Jackfruit</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;font-size:12px;font-weight:700">
+              <span style="color:#15803d">🟢 &lt; 5 min (Óptimo)</span>
+              <span style="color:#d97706">🟡 5–12 min (Atención)</span>
+              <span style="color:#dc2626">🔴 &gt; 12 min (Prioridad)</span>
+            </div>
+          </div>
+          <div class="kds-grid" id="kdsGrid"></div>
+        </section>
+
+        <!-- VISTA 3: SIMULADOR INTERACTIVO EN PANTALLA DIVIDIDA (CELULAR QR + COCINA/CAJA) -->
+        <section id="view-simulador" style="display:none">
+          <div class="simulator-split">
+            <div class="phone-frame">
+              <div style="color:#fff;font-size:12px;font-weight:700;padding:4px 10px 8px;display:flex;justify-content:space-between;align-items:center">
+                <span>📱 Vista del Cliente al Escanear QR</span>
+                <select id="simTableSelect" onchange="changeSimulatorTable(this.value)" style="background:#1e293b;color:#facc15;border:1px solid #334155;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700"></select>
+              </div>
+              <iframe id="qrSimulatorFrame" src="/qr.html?mesa=6"></iframe>
+            </div>
+
+            <div style="overflow-y:auto;padding-right:4px">
+              <div style="background:#052e16;color:#fff;padding:14px 18px;border-radius:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <h3 style="font-size:16px;font-weight:800">⚡ Recepción Instantánea en Cocina y Caja</h3>
+                  <p style="font-size:12px;color:#bbf7d0">Haz un pedido en el celular de la izquierda (usa el botón "✨ Autocompletar PIN") y observa cómo entra aquí al instante sin recargar.</p>
+                </div>
+              </div>
+              <div id="simLiveKds"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VISTA 4: MESAS & GENERADOR DE CÓDIGOS QR IMPRIMIBLES -->
+        <section id="view-qrs" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:#fff;padding:14px 18px;border-radius:14px;border:1px solid var(--border)" class="no-print">
+            <div>
+              <h3 style="font-size:16px;font-weight:800">Tarjetas QR y PIN de Seguridad por Mesa (Mesas 1 a 28)</h3>
+              <p style="font-size:12.5px;color:var(--muted)">
+                Cada mesa tiene un QR único que abre su carta digital y un PIN de 2 dígitos para evitar pedidos falsos fuera del local.
+              </p>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir Tarjetas QR para Mesas</button>
+            </div>
+          </div>
+          <div class="qr-cards-grid" id="qrCardsContainer"></div>
+        </section>
+
+        <!-- VISTA 5: FACTURACIÓN ELECTRÓNICA (BOLETAS, FACTURAS, NOTAS DE VENTA) Y CAJA -->
+        <section id="view-facturacion" style="display:none">
+          <div id="cashboxSummary" style="margin-bottom:16px"></div>
+
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <h3 style="font-size:16px;font-weight:800">🧾 Comprobantes Emitidos (Boletas BA01, Facturas FA01 y Notas de Venta NV01)</h3>
+            </div>
+            <div id="vouchersTableWrap"></div>
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:10px">🛡️ Auditoría de Ítems Eliminados / Anulados</h3>
+            <div id="deletedLogWrap"></div>
+          </div>
+        </section>
+
+        <!-- VISTA 6: CARTA DIGITAL Y PRECIOS (162 PRODUCTOS REALES DE JACKFRUIT) -->
+        <section id="view-carta" style="display:none">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+              <div style="display:flex;gap:10px;flex:1;min-width:280px">
+                <input type="text" id="adminProdSearch" class="form-input" style="max-width:340px" placeholder="Buscar entre los 162 productos de Jackfruit..." oninput="renderAdminProducts()" />
+                <select id="adminProdCatFilter" class="form-input" style="max-width:220px" onchange="renderAdminProducts()">
+                  <option value="ALL">Todas las Categorías</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="openNewProductModal()">+ Nuevo Producto en Carta</button>
+            </div>
+            <div id="adminProductsTableWrap"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL 1: TOMAR PEDIDO MANUAL (MOZO / MOSTRADOR / DELIVERY) -->
+  <div id="posOrderModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:740px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 id="posModalTitle" style="font-size:18px;font-weight:800">Agregar Pedido</h3>
+        <button class="btn btn-sm" onclick="closeModal('posOrderModal')">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 290px;gap:16px">
+        <div>
+          <input type="text" id="posSearchProd" class="form-input" placeholder="Buscar plato o bebida..." oninput="renderPosProductPicker()" style="margin-bottom:10px" />
+          <div id="posProductPickerList" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <div style="background:#f8fafc;padding:12px;border-radius:12px;border:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="font-weight:800;font-size:13px;margin-bottom:8px">Detalle a Enviar a Cocina:</div>
+            <input type="text" id="posCustomerName" class="form-input" placeholder="Nombre de cliente (opcional)" style="margin-bottom:8px;font-size:12px" />
+            <div id="posDraftList" style="max-height:240px;overflow-y:auto"></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-weight:800;font-size:16px;padding:10px 0;border-top:1px solid var(--border)">
+              <span>Total:</span>
+              <span id="posDraftTotal">S/ 0.00</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="submitPosManualOrder()">
+              🔥 Enviar Comanda a Cocina
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: COBRO DE CUENTA Y EMISIÓN DE BOLETA / FACTURA / NOTA DE VENTA (CONECTADO A FACTURALOCONLWP.COM) -->
+  <div id="checkoutModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:560px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="font-size:18px;font-weight:800">💳 Cobrar Cuenta y Emitir Comprobante</h3>
+        <button class="btn btn-sm" onclick="closeModal('checkoutModal')">✕</button>
+      </div>
+
+      <div id="checkoutOrderSummary" style="background:#f0fdf4;border:1px solid #86efac;padding:12px;border-radius:12px;margin-bottom:10px"></div>
+
+      <div id="checkoutAutoFillBanner" style="display:none;background:#dbeafe;border:1.5px solid #3b82f6;color:#1e3a8a;padding:10px 12px;border-radius:10px;font-size:12.5px;font-weight:700;margin-bottom:12px">
+        ✨ Datos de DNI/RUC y comprobante cargados automáticamente desde la solicitud QR del cliente.
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:800;display:block;margin-bottom:6px">Tipo de Comprobante Electrónico:</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <button type="button" class="btn btn-primary" id="vTypeBtn-boleta" onclick="selectVoucherType('boleta')" style="justify-content:center">
+            Boleta (BA01)
+          </button>
+          <button type="button" class="btn" id="vTypeBtn-factura" onclick="selectVoucherType('factura')" style="justify-content:center">
+            Factura (FA01)
+          </button>
+          <button type="button" class="btn" id="vTypeBtn-notaVenta" onclick="selectVoucherType('notaVenta')" style="justify-content:center">
+            Nota Venta (NV01)
+          </button>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+        <label style="font-size:12px;font-weight:800;display:block;margin-bottom:6px" id="docInputLabel">
+          DNI o RUC del Cliente (Consulta en vivo RENIEC/SUNAT vía facturaloconlwp.com):
+        </label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input type="text" id="checkoutDocNumber" class="form-input" placeholder="11111111 (Clientes Varios) o ingrese DNI / RUC" />
+          <button type="button" class="btn btn-accent" id="btnLookupDoc" onclick="lookupDniRucLive()">
+            🔍 Consultar SUNAT/RENIEC
+          </button>
+        </div>
+        <div style="margin-bottom:8px">
+          <input type="text" id="checkoutClientName" class="form-input" placeholder="Nombre o Razón Social del Cliente" value="CLIENTES VARIOS" />
+        </div>
+        <div>
+          <input type="text" id="checkoutClientAddress" class="form-input" placeholder="Dirección del Cliente" value="-" />
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Método de Pago:</label>
+          <select id="checkoutPayMethod" class="form-input">
+            <option value="Efectivo">💵 Efectivo</option>
+            <option value="Yape / Plin">📱 Yape / Plin</option>
+            <option value="Tarjeta POS">💳 Tarjeta Visa / Mastercard</option>
+            <option value="Transferencia">🏦 Transferencia Bancaria</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Descuento (S/):</label>
+          <input type="number" id="checkoutDiscount" class="form-input" value="0" min="0" step="0.5" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnConfirmCheckout" style="width:100%;justify-content:center;padding:13px;font-size:15px" onclick="confirmCheckoutSale()">
+        ✅ Registrar Pago y Emitir Comprobante
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: TICKET TÉRMICO 80MM + PAYLOAD FACTURALOCONLWP.COM -->
+  <div id="voucherReceiptModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px" class="no-print">
+        <h3 style="font-size:17px;font-weight:800">🧾 Comprobante Emitido</h3>
+        <button class="btn btn-sm" onclick="closeModal('voucherReceiptModal')">✕</button>
+      </div>
+      <div id="receiptTicketContent"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: AJUSTES DE FACTURACIÓN ELECTRÓNICA LWP -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:500px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:17px;font-weight:800">⚙️ Configuración FE (facturaloconlwp.com)</h3>
+        <button class="btn btn-sm" onclick="closeModal('settingsModal')">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Empresa Emisora:</label>
+          <input type="text" class="form-input" value="JACKFRUIT RIO NEGRO E.I.R.L. (RUC 20604377405)" disabled />
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Endpoint Comprobantes LWP:</label>
+          <input type="text" class="form-input" value="https://facturaloconlwp.com/api/comprobante" disabled />
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Bearer Token API (facturaloconlwp.com):</label>
+          <input type="password" id="cfgFeToken" class="form-input" placeholder="Pegar token Bearer de LWP para envío directo a SUNAT" />
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Meta Diaria de Ventas (S/):</label>
+          <input type="number" id="cfgSalesGoal" class="form-input" value="1800" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="cfgLeyAmazonia" checked />
+          <label for="cfgLeyAmazonia" style="font-size:13px;font-weight:700">Exonerado de IGV — Ley de la Amazonía (codAfectacionIgv = 20)</label>
+        </div>
+        <button class="btn btn-primary" style="justify-content:center;padding:11px" onclick="saveFeConfig()">
+          Guardar Configuración
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: NUEVO PRODUCTO -->
+  <div id="newProductModal" class="modal-overlay">
+    <div class="modal-box" style="max-width:440px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:17px;font-weight:800">+ Nuevo Producto en Carta</h3>
+        <button class="btn btn-sm" onclick="closeModal('newProductModal')">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input type="text" id="newProdName" class="form-input" placeholder="Nombre del plato o bebida" />
+        <input type="text" id="newProdCat" class="form-input" placeholder="Categoría (ej. HELADOS, PACO, CREMOLADA)" />
+        <select id="newProdStation" class="form-input">
+          <option value="heladeria">🍨 Estación Heladería & Barra Fría</option>
+          <option value="cocina">🍳 Estación Cocina Principal</option>
+          <option value="barra">🍹 Estación Barra & Tienda</option>
+        </select>
+        <input type="number" id="newProdPrice" class="form-input" placeholder="Precio de Venta (S/)" step="0.5" />
+        <button class="btn btn-primary" style="justify-content:center;padding:11px" onclick="createNewProduct()">Guardar Producto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: ALERTA EMERGENTE EN PANTALLA DE LLAMADO AL MOZO / SOLICITUD DE CUENTA -->
+  <div id="waiterCallPopupModal" class="waiter-popup-overlay no-print">
+    <div class="waiter-popup-card">
+      <div class="waiter-bell-circle" id="waiterPopupIcon">🔔</div>
+      <div style="font-size:13px;font-weight:800;color:#b45309;text-transform:uppercase;letter-spacing:0.06em" id="waiterPopupSubtitle">
+        ¡SOLICITUD DE ATENCIÓN EN MESA!
+      </div>
+      <div class="waiter-table-badge" id="waiterPopupTableName">MESA 6</div>
+      <p style="font-size:16px;font-weight:700;color:#0f172a;margin:8px 0 6px" id="waiterPopupMessage">
+        El cliente de la Mesa 6 está llamando al mozo desde su código QR.
+      </p>
+      <div style="font-size:12px;color:#64748b;margin-bottom:20px" id="waiterPopupZone">
+        Salón Principal • Recibido hace unos segundos
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-primary" style="flex:1;justify-content:center;padding:13px;font-size:15px" id="waiterPopupAttendBtn">
+          ✅ Atender e Ir a la Mesa
+        </button>
+        <button class="btn" style="padding:13px 16px;font-size:14px" onclick="dismissWaiterPopupOnly()">
+          Minimizar Aviso
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
