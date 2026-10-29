@@ -15,8 +15,29 @@ const path = require('path');
 
 const SEED_FILE = path.join(process.cwd(), 'data', 'seed.json');
 const TMP_STATE_FILE = '/tmp/jackfruit-state.json';
-const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
-const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+
+function findEnvEndingWith(suffixes) {
+  for (const s of suffixes) {
+    if (process.env[s]) return process.env[s];
+  }
+  const keys = Object.keys(process.env || {});
+  for (const s of suffixes) {
+    const match = keys.find(k => k.toUpperCase().endsWith(s.toUpperCase()));
+    if (match && process.env[match]) return process.env[match];
+  }
+  return '';
+}
+
+const KV_URL = findEnvEndingWith([
+  'jackfruit_KV_REST_API_URL',
+  'KV_REST_API_URL',
+  'UPSTASH_REDIS_REST_URL'
+]);
+const KV_TOKEN = findEnvEndingWith([
+  'jackfruit_KV_REST_API_TOKEN',
+  'KV_REST_API_TOKEN',
+  'UPSTASH_REDIS_REST_TOKEN'
+]);
 const KV_KEY = 'jackfruit:pos:state:v2';
 const KV_VER_KEY = 'jackfruit:pos:version:v2';
 
@@ -276,7 +297,10 @@ module.exports = async function handler(req, res) {
   if (pathname === '/api/version' && req.method === 'GET') {
     const ver = await getFastVersion();
     res.setHeader('Cache-Control', 'public, s-maxage=1, stale-while-revalidate=2');
-    return res.status(200).json({ version: ver });
+    return res.status(200).json({
+      version: ver,
+      storageMode: (KV_URL && KV_TOKEN) ? 'upstash-redis' : 'memory-tmp'
+    });
   }
 
   const appState = await loadState();
@@ -288,6 +312,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
       version: memoryVersion,
+      storageMode: (KV_URL && KV_TOKEN) ? 'upstash-redis' : 'memory-tmp',
       publicBaseUrl,
       company: appState.company,
       series: appState.series,
