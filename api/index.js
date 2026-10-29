@@ -43,6 +43,7 @@ const KV_VER_KEY = 'jackfruit:pos:version:v2';
 
 let memoryState = null;
 let memoryVersion = Date.now().toString();
+let lastKvVerCheckAt = 0;
 
 function nowFormatted() {
   const d = new Date(Date.now() - 5 * 3600 * 1000); // Hora Perú (UTC-5)
@@ -92,69 +93,21 @@ function addNotification(appState, type, message, tableId, orderId) {
 
 function ensureDemoActiveOrders(appState) {
   if (!Array.isArray(appState.orders)) appState.orders = [];
-  if (appState.orders.length === 0) {
-    const fiveMinAgo = nowFormatted();
-    const eightMinAgo = nowFormatted();
-
-    const order1 = {
-      id: 'ORD-1001',
-      code: '12134',
-      channel: 'qr',
-      tableId: 6,
-      tableName: 'Mesa 6',
-      customerName: 'Cliente QR (Mesa 6)',
-      createdAt: fiveMinAgo,
-      updatedAt: fiveMinAgo,
-      status: 'open',
-      items: [
-        makeOrderItem('ITM-1', 103, 'HELADOS MIXTO', 'HELADOS', 'heladeria', 7.0, 2, 'Bien frío, con jalea de jackfruit', 'pending', fiveMinAgo, 'qr'),
-        makeOrderItem('ITM-2', 189, 'CREMOLADA DE JACK FRUIT', 'CREMOLADA', 'heladeria', 5.0, 2, '', 'pending', fiveMinAgo, 'qr'),
-        makeOrderItem('ITM-3', 213, 'DESHIDRATADO DE JACK FRUIT', 'OTROS', 'barra', 10.0, 1, 'Para compartir en mesa', 'ready', fiveMinAgo, 'qr')
-      ],
-      total: 34.0
-    };
-
-    const order2 = {
-      id: 'ORD-1002',
-      code: '12135',
-      channel: 'mesa',
-      tableId: 3,
-      tableName: 'Mesa 3',
-      customerName: 'Familia Rojas',
-      createdAt: eightMinAgo,
-      updatedAt: eightMinAgo,
-      status: 'open',
-      items: [
-        makeOrderItem('ITM-4', 82, 'PACO FRITO', 'PACO', 'cocina', 30.0, 2, 'Con patacones dorados y ají charapita', 'preparing', eightMinAgo, 'mozo'),
-        makeOrderItem('ITM-5', 215, 'JUANES', 'CECINA', 'cocina', 25.0, 1, '', 'preparing', eightMinAgo, 'mozo'),
-        makeOrderItem('ITM-6', 142, 'H2O COCO VASO', 'BEBIDAS', 'barra', 9.0, 2, 'Sin hielo', 'delivered', eightMinAgo, 'mozo')
-      ],
-      total: 103.0
-    };
-
-    appState.orders.push(order1, order2);
-
-    (appState.tables || []).forEach(t => {
-      if (t.id === 6) {
-        t.status = 'occupied';
-        t.currentOrderId = 'ORD-1001';
-      } else if (t.id === 3) {
-        t.status = 'occupied';
-        t.currentOrderId = 'ORD-1002';
-      }
-    });
-
-    addNotification(appState, 'qr_order', '📱 Pedido QR recibido en Mesa 6 (Helados Mixto x2, Cremolada Jackfruit x2)', 6, 'ORD-1001');
-    addNotification(appState, 'kitchen_ready', '🍽️ ¡Listo para llevar a Mesa 6!: DESHIDRATADO DE JACK FRUIT (x1)', 6, 'ORD-1001');
-  }
+  if (!Array.isArray(appState.vouchers)) appState.vouchers = [];
+  if (!Array.isArray(appState.notifications)) appState.notifications = [];
+  if (!Array.isArray(appState.deletedItemsLog)) appState.deletedItemsLog = [];
 }
 
 async function kvGet(key) {
   if (!KV_URL || !KV_TOKEN) return null;
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
     const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     if (!r.ok) return null;
     const data = await r.json();
     return data && data.result ? data.result : null;
@@ -166,35 +119,46 @@ async function kvGet(key) {
 async function kvSet(key, val) {
   if (!KV_URL || !KV_TOKEN) return false;
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
     await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${KV_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      body: typeof val === 'string' ? val : JSON.stringify(val)
+      body: typeof val === 'string' ? val : JSON.stringify(val),
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     return true;
   } catch (e) {
     return false;
   }
 }
 
-async function loadState() {
-  // 1. Intentar leer desde Upstash Redis / Vercel KV si está configurado
+async function loadState(forceRefresh = false) {
+  // 1. Caché híbrida inteligente: solo descarga el estado completo desde Redis cuando la versión cambió
   if (KV_URL && KV_TOKEN) {
+    if (memoryState && !forceRefresh) {
+      const remoteVer = await getFastVersion();
+      if (remoteVer && remoteVer === memoryVersion) {
+        return memoryState;
+      }
+    }
     const rawKv = await kvGet(KV_KEY);
     if (rawKv) {
       try {
         const parsed = typeof rawKv === 'string' ? JSON.parse(rawKv) : rawKv;
         memoryState = parsed;
         memoryVersion = String(parsed._version || Date.now());
+        lastKvVerCheckAt = Date.now();
         return memoryState;
       } catch (e) {}
     }
   }
 
-  // 2. Intentar leer desde memoria o /tmp/jackfruit-state.json
+  // 2. Respaldo automático en memoria o /tmp/jackfruit-state.json (Fail-Safe 100% libre de caídas)
   if (memoryState) return memoryState;
 
   try {
@@ -218,6 +182,7 @@ async function saveState(appState) {
   memoryVersion = Date.now().toString();
   appState._version = memoryVersion;
   memoryState = appState;
+  lastKvVerCheckAt = Date.now();
 
   const serialized = JSON.stringify(appState);
 
@@ -235,7 +200,13 @@ async function saveState(appState) {
 
 async function getFastVersion() {
   if (KV_URL && KV_TOKEN) {
+    const now = Date.now();
+    // TTL de 3s en memoria para proteger la cuota gratuita de Upstash Redis ante miles de clientes
+    if (memoryState && now - lastKvVerCheckAt < 3000) {
+      return memoryVersion;
+    }
     const v = await kvGet(KV_VER_KEY);
+    lastKvVerCheckAt = now;
     if (v) return String(v);
   }
   return memoryVersion;
@@ -303,7 +274,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const appState = await loadState();
+  const appState = await loadState(req.method === 'POST');
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:8085';
   const publicBaseUrl = `${proto}://${host}`;
@@ -583,7 +554,7 @@ module.exports = async function handler(req, res) {
   }
 
   // 4. ACTUALIZACIÓN DE ESTADO EN COCINA (KDS) -> DISPARA ALERTA EN CELULAR DEL CLIENTE
-  if (pathname === '/api/kds/update' && req.method === 'POST') {
+  if ((pathname === '/api/kds/update-status' || pathname === '/api/kds/update') && req.method === 'POST') {
     const orderId = String(body.orderId || '');
     const itemId = String(body.itemId || '');
     const newState = String(body.newState || 'ready');
@@ -912,20 +883,40 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, table });
   }
 
+  if (pathname === '/api/admin/notifications-clear' && req.method === 'POST') {
+    (appState.notifications || []).forEach(n => { n.read = true; });
+    await saveState(appState);
+    return res.status(200).json({ ok: true });
+  }
+
   if (pathname === '/api/admin/config' && req.method === 'POST') {
     if (!appState.company) appState.company = {};
     if (body.feToken !== undefined) appState.company.feToken = String(body.feToken).trim();
     if (body.leyAmazonia !== undefined) appState.company.leyAmazonia = Boolean(body.leyAmazonia);
     if (body.dailySalesGoal !== undefined) appState.company.dailySalesGoal = Number(body.dailySalesGoal);
+    if (body.salesGoal !== undefined) appState.company.salesGoal = Number(body.salesGoal);
     await saveState(appState);
     return res.status(200).json({ ok: true, company: appState.company });
   }
 
   if (pathname === '/api/admin/reset-demo' && req.method === 'POST') {
-    const rawSeed = fs.readFileSync(SEED_FILE, 'utf8');
-    const fresh = JSON.parse(rawSeed);
-    ensureDemoActiveOrders(fresh);
-    await saveState(fresh);
+    appState.orders = [];
+    appState.vouchers = [];
+    appState.notifications = [];
+    appState.deletedItemsLog = [];
+    (appState.tables || []).forEach(t => {
+      t.status = 'free';
+      t.currentOrderId = null;
+      t.waiterCall = false;
+      t.billRequested = false;
+      t.billTypeRequested = '';
+      t.billVoucherKey = '';
+      t.billDocNumber = '';
+      t.billClientName = '';
+      t.billClientAddress = '';
+      t.billPaymentMethod = '';
+    });
+    await saveState(appState);
     return res.status(200).json({ ok: true });
   }
 

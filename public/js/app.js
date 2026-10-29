@@ -1,7 +1,7 @@
 let state = null;
 let currentVersion = '';
 let currentView = 'salon';
-let selectedTableId = 6;
+let selectedTableId = 1;
 let selectedExternalOrderId = null;
 let zoneFilter = 'all';
 let kdsStationFilter = 'all';
@@ -1470,6 +1470,18 @@ async function saveFeConfig() {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+}
+
+async function clearAllOrdersNow() {
+  if (!confirm('¿Deseas limpiar todas las comandas de prueba y dejar las 28 mesas libres?')) return;
+  try {
+    await fetch('/api/admin/reset-demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    await loadState();
+  } catch (e) {}
 }
 
 loadState();
