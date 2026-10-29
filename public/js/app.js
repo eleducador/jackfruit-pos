@@ -1536,14 +1536,10 @@ function initAuthAndReportsDefaults() {
 function openLoginModal() {
   const errBox = document.getElementById('loginErrorBox');
   if (errBox) errBox.style.display = 'none';
+  const passInp = document.getElementById('loginPasswordInput');
+  if (passInp) passInp.value = '';
   const modal = document.getElementById('loginScreenOverlay');
   if (modal) modal.classList.add('open');
-}
-
-function quickFillLogin(u, p) {
-  document.getElementById('loginUsernameInput').value = u;
-  document.getElementById('loginPasswordInput').value = p;
-  submitStaffLogin();
 }
 
 async function submitStaffLogin() {

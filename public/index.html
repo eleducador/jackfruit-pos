@@ -540,38 +540,18 @@
 
       <div id="loginErrorBox" style="display:none;background:#fee2e2;color:#b91c1c;padding:9px 12px;border-radius:8px;font-size:12.5px;font-weight:700;margin-bottom:12px;text-align:center"></div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div style="display:flex;flex-direction:column;gap:12px">
         <div>
           <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Usuario:</label>
-          <input type="text" id="loginUsernameInput" class="form-input" placeholder="Ej. admin, caja, cocina, mozo" value="admin" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
+          <input type="text" id="loginUsernameInput" class="form-input" placeholder="Ingresa tu usuario" autocomplete="username" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
         </div>
         <div>
           <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Contraseña:</label>
-          <input type="password" id="loginPasswordInput" class="form-input" placeholder="Ingresa tu contraseña" value="Admin2024" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
+          <input type="password" id="loginPasswordInput" class="form-input" placeholder="Ingresa tu contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
         </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px" onclick="submitStaffLogin()">
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px;margin-top:4px" onclick="submitStaffLogin()">
           🔐 Ingresar al Sistema
         </button>
-      </div>
-
-      <div style="border-top:1px dashed var(--border);padding-top:12px">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px;text-align:center">
-          ⚡ ACCESO RÁPIDO PARA DEMOSTRACIÓN DE PERFILES:
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('admin','Admin2024')">
-            👑 Admin (Total + Ventas)
-          </button>
-          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('caja','Caja2024')">
-            💳 Cajero (Salón/FE)
-          </button>
-          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('cocina','Cocina2024')">
-            👨‍🍳 Cocina (Solo KDS)
-          </button>
-          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('mozo','Mozo2024')">
-            🤵 Mozo (Mesas/KDS)
-          </button>
-        </div>
       </div>
     </div>
   </div>
