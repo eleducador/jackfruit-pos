@@ -96,6 +96,100 @@ function ensureDemoActiveOrders(appState) {
   if (!Array.isArray(appState.vouchers)) appState.vouchers = [];
   if (!Array.isArray(appState.notifications)) appState.notifications = [];
   if (!Array.isArray(appState.deletedItemsLog)) appState.deletedItemsLog = [];
+  if (!Array.isArray(appState.salesArchives)) appState.salesArchives = [];
+
+  if (!Array.isArray(appState.users) || appState.users.length === 0) {
+    appState.users = [
+      { id: 1, username: 'admin', password: 'Admin2024', name: 'Administrador General', role: 'admin', roleLabel: '👑 Administrador Total' },
+      { id: 2, username: 'caja', password: 'Caja2024', name: 'Cajero Principal', role: 'cajero', roleLabel: '💳 Cajero y Salón' },
+      { id: 3, username: 'cocina', password: 'Cocina2024', name: 'Jefe de Cocina / Barra', role: 'cocina', roleLabel: '👨‍🍳 Cocina y Barra KDS' },
+      { id: 4, username: 'mozo', password: 'Mozo2024', name: 'Mozo de Salón', role: 'mozo', roleLabel: '🤵 Atención de Mesas' }
+    ];
+  }
+
+  // Retención automática de 1 año (365 días) para comprobantes e historial de cierres diarios
+  const cutoffMs = Date.now() - 366 * 24 * 3600 * 1000;
+  appState.vouchers = appState.vouchers.filter(v => {
+    const dt = Date.parse(String(v.issuedAt || '').replace(' ', 'T'));
+    return isNaN(dt) || dt >= cutoffMs;
+  });
+  appState.salesArchives = appState.salesArchives.filter(a => {
+    const dt = Date.parse(String(a.date || '') + 'T00:00:00');
+    return isNaN(dt) || dt >= cutoffMs;
+  });
+}
+
+function upsertDailyArchive(appState, targetDate, closedBy = 'Sistema Automático', notes = '') {
+  if (!Array.isArray(appState.salesArchives)) appState.salesArchives = [];
+  const dayVouchers = (appState.vouchers || []).filter(v => String(v.issuedAt || '').startsWith(targetDate));
+
+  let totalSales = 0;
+  let totalBoletas = 0;
+  let totalFacturas = 0;
+  let totalNotas = 0;
+  let countBoletas = 0;
+  let countFacturas = 0;
+  let countNotas = 0;
+  const byPayMethod = {
+    'Efectivo': 0,
+    'Yape / Plin': 0,
+    'Tarjeta POS': 0,
+    'Transferencia': 0
+  };
+  const prodMap = {};
+
+  dayVouchers.forEach(v => {
+    const amt = Number(v.total || 0);
+    totalSales += amt;
+    if (v.voucherType === 'factura') {
+      totalFacturas += amt;
+      countFacturas++;
+    } else if (v.voucherType === 'notaVenta') {
+      totalNotas += amt;
+      countNotas++;
+    } else {
+      totalBoletas += amt;
+      countBoletas++;
+    }
+    const pm = v.paymentMethod || 'Efectivo';
+    byPayMethod[pm] = (byPayMethod[pm] || 0) + amt;
+
+    (v.items || []).forEach(it => {
+      const key = it.name || 'Producto';
+      if (!prodMap[key]) prodMap[key] = { name: key, qty: 0, subtotal: 0 };
+      prodMap[key].qty += Number(it.qty || 0);
+      prodMap[key].subtotal += Number(it.subtotal || 0);
+    });
+  });
+
+  const topProducts = Object.values(prodMap).sort((a, b) => b.subtotal - a.subtotal).slice(0, 15);
+  const archiveRecord = {
+    date: targetDate,
+    month: targetDate.substring(0, 7),
+    year: targetDate.substring(0, 4),
+    savedAt: nowFormatted(),
+    closedBy,
+    notes,
+    voucherCount: dayVouchers.length,
+    totalSales: Number(totalSales.toFixed(2)),
+    totalBoletas: Number(totalBoletas.toFixed(2)),
+    totalFacturas: Number(totalFacturas.toFixed(2)),
+    totalNotas: Number(totalNotas.toFixed(2)),
+    countBoletas,
+    countFacturas,
+    countNotas,
+    byPayMethod,
+    topProducts
+  };
+
+  const existingIdx = appState.salesArchives.findIndex(a => a.date === targetDate);
+  if (existingIdx >= 0) {
+    appState.salesArchives[existingIdx] = archiveRecord;
+  } else {
+    appState.salesArchives.unshift(archiveRecord);
+  }
+  appState.salesArchives.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return archiveRecord;
 }
 
 async function kvGet(key) {
@@ -280,6 +374,7 @@ module.exports = async function handler(req, res) {
   const publicBaseUrl = `${proto}://${host}`;
 
   if (pathname === '/api/state' && req.method === 'GET') {
+    ensureDemoActiveOrders(appState);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({
       version: memoryVersion,
@@ -291,6 +386,14 @@ module.exports = async function handler(req, res) {
       products: appState.products,
       orders: appState.orders,
       vouchers: appState.vouchers,
+      salesArchives: appState.salesArchives || [],
+      users: (appState.users || []).map(u => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        roleLabel: u.roleLabel
+      })),
       deletedItemsLog: appState.deletedItemsLog,
       notifications: appState.notifications
     });
@@ -839,10 +942,101 @@ module.exports = async function handler(req, res) {
 
     if (!Array.isArray(appState.vouchers)) appState.vouchers = [];
     appState.vouchers.unshift(voucher);
+    upsertDailyArchive(appState, dateOnly, 'Guardado Automático por Venta');
     addNotification(appState, 'sale_paid', `✅ Cuenta cobrada en ${order.tableName} — ${voucher.fullNumber} (S/ ${finalTotal.toFixed(2)})`, order.tableId || 0, orderId);
 
     await saveState(appState);
     return res.status(200).json({ ok: true, voucher, order });
+  }
+
+  // 7B. AUTENTICACIÓN Y GESTIÓN DE PERFILES / USUARIOS + ARCHIVO ANUAL DE VENTAS
+  if (pathname === '/api/auth/login' && req.method === 'POST') {
+    ensureDemoActiveOrders(appState);
+    const uName = String(body.username || '').trim().toLowerCase();
+    const uPass = String(body.password || '').trim();
+    const found = (appState.users || []).find(
+      u => String(u.username || '').toLowerCase() === uName && String(u.password || '') === uPass
+    );
+    if (!found) {
+      return res.status(401).json({ ok: false, error: 'Usuario o contraseña incorrectos.' });
+    }
+    return res.status(200).json({
+      ok: true,
+      user: {
+        id: found.id,
+        username: found.username,
+        name: found.name,
+        role: found.role,
+        roleLabel: found.roleLabel
+      }
+    });
+  }
+
+  if (pathname === '/api/admin/users' && req.method === 'POST') {
+    ensureDemoActiveOrders(appState);
+    const action = String(body.action || 'create');
+    const roleNames = {
+      admin: '👑 Administrador Total',
+      cajero: '💳 Cajero y Salón',
+      cocina: '👨‍🍳 Cocina y Barra KDS',
+      mozo: '🤵 Atención de Mesas'
+    };
+
+    if (action === 'create') {
+      const username = String(body.username || '').trim().toLowerCase();
+      const password = String(body.password || '').trim();
+      const name = String(body.name || '').trim();
+      const role = String(body.role || 'mozo');
+      if (!username || !password || !name) {
+        return res.status(400).json({ error: 'Completa usuario, contraseña y nombre.' });
+      }
+      if ((appState.users || []).some(u => String(u.username).toLowerCase() === username)) {
+        return res.status(400).json({ error: 'Ese nombre de usuario ya existe.' });
+      }
+      const maxId = (appState.users || []).reduce((m, u) => Math.max(m, Number(u.id || 0)), 4) + 1;
+      const newUser = {
+        id: maxId,
+        username,
+        password,
+        name,
+        role,
+        roleLabel: roleNames[role] || role
+      };
+      appState.users.push(newUser);
+      await saveState(appState);
+      return res.status(200).json({ ok: true, user: newUser });
+    } else if (action === 'delete') {
+      const uid = Number(body.id || 0);
+      const target = (appState.users || []).find(u => Number(u.id) === uid);
+      if (target && target.username === 'admin') {
+        return res.status(400).json({ error: 'No se puede eliminar al usuario admin principal.' });
+      }
+      appState.users = (appState.users || []).filter(u => Number(u.id) !== uid);
+      await saveState(appState);
+      return res.status(200).json({ ok: true });
+    } else if (action === 'update') {
+      const uid = Number(body.id || 0);
+      const target = (appState.users || []).find(u => Number(u.id) === uid);
+      if (!target) return res.status(404).json({ error: 'Usuario no encontrado.' });
+      if (body.password) target.password = String(body.password).trim();
+      if (body.name) target.name = String(body.name).trim();
+      if (body.role) {
+        target.role = String(body.role);
+        target.roleLabel = roleNames[target.role] || target.role;
+      }
+      await saveState(appState);
+      return res.status(200).json({ ok: true, user: target });
+    }
+  }
+
+  if (pathname === '/api/admin/archive-day' && req.method === 'POST') {
+    ensureDemoActiveOrders(appState);
+    const targetDate = String(body.date || dateOnlyFormatted()).trim();
+    const closedBy = String(body.closedBy || 'Administrador').trim();
+    const notes = String(body.notes || '').trim();
+    const rec = upsertDailyArchive(appState, targetDate, closedBy, notes);
+    await saveState(appState);
+    return res.status(200).json({ ok: true, archive: rec });
   }
 
   // 8. ADMINISTRACIÓN DE CARTA, PINES Y CONFIGURACIÓN
@@ -901,9 +1095,12 @@ module.exports = async function handler(req, res) {
 
   if (pathname === '/api/admin/reset-demo' && req.method === 'POST') {
     appState.orders = [];
-    appState.vouchers = [];
     appState.notifications = [];
-    appState.deletedItemsLog = [];
+    if (body && body.clearVouchers === true) {
+      appState.vouchers = [];
+      appState.salesArchives = [];
+      appState.deletedItemsLog = [];
+    }
     (appState.tables || []).forEach(t => {
       t.status = 'free';
       t.currentOrderId = null;

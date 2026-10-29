@@ -18,13 +18,18 @@ let posDraftItems = {}; // prodId -> { product, qty }
 let checkoutOrderId = '';
 let checkoutVoucherType = 'boleta';
 
+// Estado de Sesión / Perfil de Usuario y Reportes Históricos (Día / Mes / Año)
+let currentUser = null;
+let reportPeriodMode = 'day'; // 'day' | 'month' | 'year'
+
 const viewTitles = {
   salon: '🏛️ Salón, Mesas y Caja Rápida',
   kds: '👨‍🍳 Pantalla Inteligente de Comandas (KDS Cocina / Heladería / Barra)',
   simulador: '📱 Simulador en Vivo: Celular QR del Cliente + Recepción en Cocina y Caja',
   qrs: '🖨️ Generador de Tarjetas QR y PIN de Seguridad por Mesa (Mesas 1 a 28)',
   facturacion: '🧾 Facturación Electrónica (facturaloconlwp.com), Caja y Auditoría',
-  carta: '📖 Gestión de Carta Digital y Precios (162 Productos Jackfruit)'
+  carta: '📖 Gestión de Carta Digital y Precios (162 Productos Jackfruit)',
+  reportes: '📊 Control Gerencial de Ventas Detalladas (Día / Mes / Año - Retención 1 Año) y Perfiles'
 };
 
 function playAlertChime(type, spokenText) {
@@ -210,10 +215,23 @@ async function pollChanges() {
 }
 
 function switchView(view) {
+  if (currentUser) {
+    const role = currentUser.role;
+    if ((view === 'reportes' || view === 'carta') && role !== 'admin') {
+      alert('🔒 Acceso restringido: Solo el perfil Administrador puede ingresar a este módulo.');
+      return;
+    }
+    if (view === 'facturacion' && role !== 'admin' && role !== 'cajero') {
+      alert('🔒 Acceso restringido: Solo Administrador o Cajero pueden ver Boletas y Facturas.');
+      return;
+    }
+  }
   currentView = view;
-  ['salon', 'kds', 'simulador', 'qrs', 'facturacion', 'carta'].forEach(v => {
-    document.getElementById('view-' + v).style.display = (v === view) ? 'block' : 'none';
-    document.getElementById('nav-' + v).classList.toggle('active', v === view);
+  ['salon', 'kds', 'simulador', 'qrs', 'facturacion', 'carta', 'reportes'].forEach(v => {
+    const vEl = document.getElementById('view-' + v);
+    const nEl = document.getElementById('nav-' + v);
+    if (vEl) vEl.style.display = (v === view) ? 'block' : 'none';
+    if (nEl) nEl.classList.toggle('active', v === view);
   });
   document.getElementById('viewTitle').textContent = viewTitles[view] || '';
   renderAll();
@@ -229,6 +247,7 @@ function renderAll() {
   if (currentView === 'qrs') renderQrCards();
   if (currentView === 'facturacion') renderFacturacionView();
   if (currentView === 'carta') renderAdminProducts();
+  if (currentView === 'reportes') renderAdminReportsView();
 }
 
 function updateSidebarBadges() {
@@ -1473,7 +1492,7 @@ function closeModal(id) {
 }
 
 async function clearAllOrdersNow() {
-  if (!confirm('¿Deseas limpiar todas las comandas de prueba y dejar las 28 mesas libres?')) return;
+  if (!confirm('¿Deseas limpiar todas las comandas de prueba de las mesas y dejar las 28 mesas libres? (El historial de ventas y comprobantes se conservará intacto).')) return;
   try {
     await fetch('/api/admin/reset-demo', {
       method: 'POST',
@@ -1484,5 +1503,557 @@ async function clearAllOrdersNow() {
   } catch (e) {}
 }
 
+// ============================================================================
+// 8. CONTROL DE ACCESO POR PERFILES (ADMIN, CAJERO, COCINA, MOZO) Y VENTAS (DÍA/MES/AÑO)
+// ============================================================================
+function getPeruTodayStr() {
+  const d = new Date(Date.now() - 5 * 3600 * 1000);
+  return d.toISOString().substring(0, 10);
+}
+
+function initAuthAndReportsDefaults() {
+  const today = getPeruTodayStr();
+  const dateInp = document.getElementById('repDateInput');
+  const monthInp = document.getElementById('repMonthInput');
+  const yearInp = document.getElementById('repYearInput');
+  if (dateInp && !dateInp.value) dateInp.value = today;
+  if (monthInp && !monthInp.value) monthInp.value = today.substring(0, 7);
+  if (yearInp) yearInp.value = today.substring(0, 4);
+
+  try {
+    const saved = sessionStorage.getItem('jackfruit_staff_user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      applyRolePermissions();
+    } else {
+      openLoginModal();
+    }
+  } catch (e) {
+    openLoginModal();
+  }
+}
+
+function openLoginModal() {
+  const errBox = document.getElementById('loginErrorBox');
+  if (errBox) errBox.style.display = 'none';
+  const modal = document.getElementById('loginScreenOverlay');
+  if (modal) modal.classList.add('open');
+}
+
+function quickFillLogin(u, p) {
+  document.getElementById('loginUsernameInput').value = u;
+  document.getElementById('loginPasswordInput').value = p;
+  submitStaffLogin();
+}
+
+async function submitStaffLogin() {
+  const username = (document.getElementById('loginUsernameInput').value || '').trim();
+  const password = (document.getElementById('loginPasswordInput').value || '').trim();
+  const errBox = document.getElementById('loginErrorBox');
+  if (!username || !password) {
+    errBox.textContent = 'Ingresa tu usuario y contraseña.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      errBox.textContent = data.error || 'Usuario o contraseña incorrectos.';
+      errBox.style.display = 'block';
+      return;
+    }
+    currentUser = data.user;
+    sessionStorage.setItem('jackfruit_staff_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreenOverlay').classList.remove('open');
+    applyRolePermissions();
+  } catch (e) {
+    errBox.textContent = 'Error de conexión al validar credenciales.';
+    errBox.style.display = 'block';
+  }
+}
+
+function applyRolePermissions() {
+  if (!currentUser) return;
+  const role = currentUser.role;
+  const badge = document.getElementById('activeUserBadge');
+  if (badge) {
+    badge.textContent = `${currentUser.roleLabel || currentUser.role} (${currentUser.username})`;
+  }
+
+  const navMap = {
+    admin: ['salon', 'kds', 'simulador', 'qrs', 'facturacion', 'carta', 'reportes'],
+    cajero: ['salon', 'kds', 'simulador', 'qrs', 'facturacion'],
+    cocina: ['kds'],
+    mozo: ['salon', 'kds', 'qrs']
+  };
+  const allowed = navMap[role] || navMap.mozo;
+
+  ['salon', 'kds', 'simulador', 'qrs', 'facturacion', 'carta', 'reportes'].forEach(v => {
+    const btn = document.getElementById('nav-' + v);
+    if (btn) btn.style.display = allowed.includes(v) ? 'flex' : 'none';
+  });
+
+  const btnSettings = document.getElementById('btnSettingsTop');
+  const btnClear = document.getElementById('btnClearOrdersTop');
+  if (btnSettings) btnSettings.style.display = role === 'admin' ? 'inline-flex' : 'none';
+  if (btnClear) btnClear.style.display = (role === 'admin' || role === 'cajero') ? 'inline-flex' : 'none';
+
+  if (!allowed.includes(currentView)) {
+    switchView(allowed[0]);
+  } else {
+    renderAll();
+  }
+}
+
+function setReportPeriodMode(mode) {
+  reportPeriodMode = mode;
+  ['day', 'month', 'year'].forEach(m => {
+    const btn = document.getElementById('repModeBtn-' + m);
+    if (btn) btn.classList.toggle('btn-primary', m === mode);
+  });
+  document.getElementById('repFilterDayWrap').style.display = mode === 'day' ? 'flex' : 'none';
+  document.getElementById('repFilterMonthWrap').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('repFilterYearWrap').style.display = mode === 'year' ? 'flex' : 'none';
+  renderAdminReportsView();
+}
+
+function getFilteredVouchersForReport() {
+  if (!state || !state.vouchers) return { vouchers: [], label: '' };
+  const today = getPeruTodayStr();
+  const selDay = (document.getElementById('repDateInput')?.value || today).trim();
+  const selMonth = (document.getElementById('repMonthInput')?.value || today.substring(0, 7)).trim();
+  const selYear = (document.getElementById('repYearInput')?.value || today.substring(0, 4)).trim();
+
+  if (reportPeriodMode === 'day') {
+    return {
+      vouchers: state.vouchers.filter(v => String(v.issuedAt || '').startsWith(selDay)),
+      label: `Día ${selDay}`,
+      key: selDay
+    };
+  } else if (reportPeriodMode === 'month') {
+    return {
+      vouchers: state.vouchers.filter(v => String(v.issuedAt || '').startsWith(selMonth)),
+      label: `Mes ${selMonth}`,
+      key: selMonth
+    };
+  } else {
+    return {
+      vouchers: state.vouchers.filter(v => String(v.issuedAt || '').startsWith(selYear)),
+      label: `Año ${selYear} (Consolidado Anual 365 Días)`,
+      key: selYear
+    };
+  }
+}
+
+function renderAdminReportsView() {
+  if (!state) return;
+  const { vouchers, label, key } = getFilteredVouchersForReport();
+
+  let totalSales = 0;
+  let totalBoletas = 0;
+  let totalFacturas = 0;
+  let totalNotas = 0;
+  let countBoletas = 0;
+  let countFacturas = 0;
+  let countNotas = 0;
+
+  const byPay = {
+    'Efectivo': 0,
+    'Yape / Plin': 0,
+    'Tarjeta POS': 0,
+    'Transferencia': 0
+  };
+  const prodMap = {};
+
+  vouchers.forEach(v => {
+    const amt = Number(v.total || 0);
+    totalSales += amt;
+    if (v.voucherType === 'factura') {
+      totalFacturas += amt;
+      countFacturas++;
+    } else if (v.voucherType === 'notaVenta') {
+      totalNotas += amt;
+      countNotas++;
+    } else {
+      totalBoletas += amt;
+      countBoletas++;
+    }
+    const pm = v.paymentMethod || 'Efectivo';
+    byPay[pm] = (byPay[pm] || 0) + amt;
+
+    (v.items || []).forEach(it => {
+      const pName = it.name || 'Producto';
+      if (!prodMap[pName]) prodMap[pName] = { name: pName, qty: 0, subtotal: 0 };
+      prodMap[pName].qty += Number(it.qty || 0);
+      prodMap[pName].subtotal += Number(it.subtotal || 0);
+    });
+  });
+
+  // Si estamos consultando un día o mes que tiene Cierres Guardados en salesArchives y no hay vouchers sueltos, sumar desde salesArchives
+  const archives = state.salesArchives || [];
+
+  document.getElementById('reportKpisContainer').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Venta Total (${label})</div>
+          <div class="kpi-val" style="color:var(--primary)">S/ ${totalSales.toFixed(2)}</div>
+          <div class="kpi-sub">${vouchers.length} comprobante(s) en el periodo</div>
+        </div>
+        <div class="kpi-icon" style="background:#dcfce7;color:#15803d">💰</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Boletas Electrónicas (BA01)</div>
+          <div class="kpi-val">S/ ${totalBoletas.toFixed(2)}</div>
+          <div class="kpi-sub">${countBoletas} boleta(s) emitida(s)</div>
+        </div>
+        <div class="kpi-icon" style="background:#e0f2fe;color:#0369a1">🧾</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Facturas Electrónicas (FA01)</div>
+          <div class="kpi-val">S/ ${totalFacturas.toFixed(2)}</div>
+          <div class="kpi-sub">${countFacturas} factura(s) con RUC</div>
+        </div>
+        <div class="kpi-icon" style="background:#fef3c7;color:#b45309">🏢</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-label">Notas de Venta (NV01)</div>
+          <div class="kpi-val">S/ ${totalNotas.toFixed(2)}</div>
+          <div class="kpi-sub">${countNotas} nota(s) interna(s)</div>
+        </div>
+        <div class="kpi-icon" style="background:#f3e8ff;color:#7e22ce">📝</div>
+      </div>
+    </div>
+  `;
+
+  // Desglose por Método de Pago
+  document.getElementById('reportPayBreakdownWrap').innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Método de Pago</th>
+          <th>Importe Acumulado</th>
+          <th>% del Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${Object.entries(byPay).map(([pm, val]) => {
+          const pct = totalSales > 0 ? ((val / totalSales) * 100).toFixed(1) : '0.0';
+          return `
+            <tr>
+              <td style="font-weight:700">${pm}</td>
+              <td style="font-weight:800;color:#052e16">S/ ${Number(val).toFixed(2)}</td>
+              <td><span class="mini-badge" style="background:#dcfce7;color:#15803d">${pct}%</span></td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+
+  // Top productos vendidos
+  const topProds = Object.values(prodMap).sort((a, b) => b.subtotal - a.subtotal);
+  if (topProds.length === 0) {
+    document.getElementById('reportTopProductsWrap').innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted)">Sin platos vendidos en este periodo aún.</div>`;
+  } else {
+    document.getElementById('reportTopProductsWrap').innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Plato / Producto</th>
+            <th>Unidades</th>
+            <th>Total Vendido</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${topProds.slice(0, 15).map(p => `
+            <tr>
+              <td style="font-weight:700">${p.name}</td>
+              <td><strong>${p.qty}</strong> und.</td>
+              <td style="font-weight:800">S/ ${Number(p.subtotal).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // Tabla principal según el modo (Día, Mes o Año)
+  const titleEl = document.getElementById('reportMainTableTitle');
+  const wrapEl = document.getElementById('reportMainTableWrap');
+
+  if (reportPeriodMode === 'year') {
+    titleEl.textContent = `🗓️ Consolidado Mensual del ${label} (12 Meses)`;
+    const monthNames = [
+      '01 - Enero', '02 - Febrero', '03 - Marzo', '04 - Abril',
+      '05 - Mayo', '06 - Junio', '07 - Julio', '08 - Agosto',
+      '09 - Septiembre', '10 - Octubre', '11 - Noviembre', '12 - Diciembre'
+    ];
+    const rows = monthNames.map((mLabel, idx) => {
+      const mPrefix = `${key}-${String(idx + 1).padStart(2, '0')}`;
+      const mVouchers = vouchers.filter(v => String(v.issuedAt || '').startsWith(mPrefix));
+      const mTotal = mVouchers.reduce((s, v) => s + Number(v.total || 0), 0);
+      const mBol = mVouchers.filter(v => v.voucherType === 'boleta').reduce((s, v) => s + Number(v.total || 0), 0);
+      const mFac = mVouchers.filter(v => v.voucherType === 'factura').reduce((s, v) => s + Number(v.total || 0), 0);
+      const mNot = mVouchers.filter(v => v.voucherType === 'notaVenta').reduce((s, v) => s + Number(v.total || 0), 0);
+      return `
+        <tr>
+          <td style="font-weight:800">${mLabel} (${key})</td>
+          <td>${mVouchers.length} ventas</td>
+          <td>S/ ${mBol.toFixed(2)}</td>
+          <td>S/ ${mFac.toFixed(2)}</td>
+          <td>S/ ${mNot.toFixed(2)}</td>
+          <td style="font-weight:800;color:#052e16">S/ ${mTotal.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    wrapEl.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Mes del Año</th>
+            <th>Comprobantes</th>
+            <th>Boletas (BA01)</th>
+            <th>Facturas (FA01)</th>
+            <th>Notas Venta (NV01)</th>
+            <th>Total del Mes</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  } else {
+    titleEl.textContent = `🧾 Detalle de Ventas Emitidas — ${label}`;
+    if (vouchers.length === 0) {
+      wrapEl.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">No hay ventas registradas para <strong>${label}</strong>. Cuando emitas una Boleta, Factura o Nota de Venta desde Salón, aparecerá detallada aquí automáticamente.</div>`;
+    } else {
+      wrapEl.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Comprobante</th>
+              <th>Mesa / Origen</th>
+              <th>Cliente (DNI / RUC)</th>
+              <th>Detalle de Productos Vendidos</th>
+              <th>Pago</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vouchers.map(v => {
+              const itemsText = (v.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
+              return `
+                <tr>
+                  <td>${v.issuedAt}</td>
+                  <td style="font-weight:800">${v.fullNumber}<div style="font-size:10px;color:var(--muted)">${v.voucherLabel}</div></td>
+                  <td>${v.tableName}</td>
+                  <td><strong>${v.clientName}</strong><div style="font-size:11px;color:var(--muted)">Doc: ${v.clientDocNumber}</div></td>
+                  <td style="font-size:12px;max-width:290px">${itemsText}</td>
+                  <td><span class="mini-badge" style="background:#f1f5f9">${v.paymentMethod}</span></td>
+                  <td style="font-weight:800;color:#052e16">S/ ${Number(v.total).toFixed(2)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  // Historial de Cierres Diarios Guardados (Retención 365 Días)
+  const archWrap = document.getElementById('reportSavedArchivesWrap');
+  if (archives.length === 0) {
+    archWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted)">Aún no hay cierres diarios archivados. Se guardan automáticamente al emitir ventas o pulsando el botón <strong>"💾 Guardar Cierre del Día en Historial Anual"</strong>.</div>`;
+  } else {
+    archWrap.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha de Cierre</th>
+            <th>Hora Guardado</th>
+            <th>Comprobantes</th>
+            <th>Boletas</th>
+            <th>Facturas</th>
+            <th>Notas Venta</th>
+            <th>Total del Día</th>
+            <th>Responsable / Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${archives.map(a => `
+            <tr>
+              <td style="font-weight:800">${a.date}</td>
+              <td>${a.savedAt}</td>
+              <td>${a.voucherCount} ventas</td>
+              <td>S/ ${Number(a.totalBoletas || 0).toFixed(2)} (${a.countBoletas || 0})</td>
+              <td>S/ ${Number(a.totalFacturas || 0).toFixed(2)} (${a.countFacturas || 0})</td>
+              <td>S/ ${Number(a.totalNotas || 0).toFixed(2)} (${a.countNotas || 0})</td>
+              <td style="font-weight:800;color:#052e16;font-size:14px">S/ ${Number(a.totalSales || 0).toFixed(2)}</td>
+              <td style="font-size:12px">${a.closedBy || 'Admin'}${a.notes ? ` — <em>${a.notes}</em>` : ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  renderAdminUsersTable();
+}
+
+async function saveDailySalesArchive() {
+  const targetDate = (document.getElementById('repDateInput')?.value || getPeruTodayStr()).trim();
+  const notes = (document.getElementById('repArchiveNotes')?.value || '').trim();
+  const closedBy = currentUser ? `${currentUser.name} (${currentUser.username})` : 'Administrador';
+
+  const res = await fetch('/api/admin/archive-day', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: targetDate, closedBy, notes })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    if (document.getElementById('repArchiveNotes')) document.getElementById('repArchiveNotes').value = '';
+    await loadState();
+    alert(`✅ Cierre del día ${targetDate} guardado exitosamente en el Historial Anual (Total: S/ ${Number(data.archive.totalSales || 0).toFixed(2)}). Se conservará durante 1 año (365 días).`);
+  }
+}
+
+function exportSalesReportCsv() {
+  const { vouchers, label, key } = getFilteredVouchersForReport();
+  if (vouchers.length === 0) {
+    alert(`No hay ventas registradas en ${label} para exportar.`);
+    return;
+  }
+
+  const lines = [
+    ['Fecha_Hora', 'Comprobante', 'Tipo', 'Mesa_Origen', 'Doc_Cliente', 'Nombre_Razon_Social', 'Metodo_Pago', 'Productos', 'Total_Soles'].join(';')
+  ];
+
+  vouchers.forEach(v => {
+    const itemsStr = (v.items || []).map(i => `${i.qty}x ${i.name}`).join(' | ').replace(/;/g, ',');
+    lines.push([
+      v.issuedAt,
+      v.fullNumber,
+      v.voucherLabel,
+      v.tableName,
+      v.clientDocNumber,
+      String(v.clientName || '').replace(/;/g, ','),
+      v.paymentMethod,
+      itemsStr,
+      Number(v.total || 0).toFixed(2)
+    ].join(';'));
+  });
+
+  const csvContent = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Reporte_Ventas_Jackfruit_${key}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function renderAdminUsersTable() {
+  const wrap = document.getElementById('adminUsersTableWrap');
+  if (!wrap || !state) return;
+  const users = state.users || [];
+
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario (Login)</th>
+          <th>Nombre Completo</th>
+          <th>Perfil / Nivel de Acceso</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${users.map(u => `
+          <tr>
+            <td>#${u.id}</td>
+            <td style="font-weight:800">${u.username}</td>
+            <td>${u.name}</td>
+            <td><span class="mini-badge" style="background:#dcfce7;color:#15803d">${u.roleLabel || u.role}</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm" onclick="changeStaffUserPassword(${u.id}, '${u.username}')">🔑 Cambiar Clave</button>
+                ${u.username !== 'admin' ? `
+                  <button class="btn btn-sm" style="color:var(--danger)" onclick="deleteStaffUser(${u.id}, '${u.username}')">🗑 Eliminar</button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function createStaffUser() {
+  const name = (document.getElementById('newUsrName').value || '').trim();
+  const username = (document.getElementById('newUsrLogin').value || '').trim().toLowerCase();
+  const password = (document.getElementById('newUsrPass').value || '').trim();
+  const role = document.getElementById('newUsrRole').value;
+
+  if (!name || !username || !password) {
+    alert('Completa el nombre, usuario y contraseña para crear el perfil.');
+    return;
+  }
+
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create', name, username, password, role })
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    alert(data.error || 'Error al crear usuario.');
+    return;
+  }
+
+  document.getElementById('newUsrName').value = '';
+  document.getElementById('newUsrLogin').value = '';
+  document.getElementById('newUsrPass').value = '';
+  await loadState();
+}
+
+async function changeStaffUserPassword(id, username) {
+  const newPass = prompt(`Ingresa la nueva contraseña para el usuario "${username}":`);
+  if (!newPass || !newPass.trim()) return;
+  await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'update', id, password: newPass.trim() })
+  });
+  alert(`✅ Contraseña de "${username}" actualizada correctamente.`);
+  await loadState();
+}
+
+async function deleteStaffUser(id, username) {
+  if (!confirm(`¿Seguro que deseas eliminar al usuario "${username}"?`)) return;
+  await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete', id })
+  });
+  await loadState();
+}
+
+initAuthAndReportsDefaults();
 loadState();
 setInterval(pollChanges, 1000);

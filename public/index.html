@@ -46,6 +46,10 @@
           <span>📖 Carta y Precios</span>
           <span class="nav-pill" id="badge-products">162</span>
         </button>
+        <button class="nav-btn" id="nav-reportes" onclick="switchView('reportes')">
+          <span>📊 Ventas (Día/Mes/Año) & Usuarios</span>
+          <span class="nav-pill" style="background:#facc15;color:#052e16">ADMIN</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -78,12 +82,18 @@
           <button class="btn btn-sm btn-accent" onclick="window.open('/qr.html?mesa=1', '_blank')">
             📱 Abrir Carta QR (Mesa 1)
           </button>
-          <button class="btn btn-sm" onclick="clearAllOrdersNow()" title="Limpiar todas las comandas de prueba y dejar las 28 mesas libres">
+          <button class="btn btn-sm" id="btnClearOrdersTop" onclick="clearAllOrdersNow()" title="Limpiar todas las comandas de prueba y dejar las 28 mesas libres">
             🧹 Limpiar Comandas
           </button>
-          <button class="btn btn-sm" onclick="openSettingsModal()">
+          <button class="btn btn-sm" id="btnSettingsTop" onclick="openSettingsModal()">
             ⚙️ Ajustes FE
           </button>
+          <div style="display:flex;align-items:center;gap:6px;background:#f0fdf4;border:1.5px solid #86efac;padding:4px 10px;border-radius:10px">
+            <span id="activeUserBadge" style="font-size:12px;font-weight:800;color:#052e16">👑 Admin</span>
+            <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;background:#fff" onclick="openLoginModal()">
+              🔐 Cambiar / Salir
+            </button>
+          </div>
         </div>
       </header>
 
@@ -206,6 +216,118 @@
               <button class="btn btn-primary" onclick="openNewProductModal()">+ Nuevo Producto en Carta</button>
             </div>
             <div id="adminProductsTableWrap"></div>
+          </div>
+        </section>
+
+        <!-- VISTA 7 (EXCLUSIVA ADMINISTRADOR): CONTROL DE VENTAS DETALLADAS (DÍA / MES / AÑO - RETENCIÓN 1 AÑO) Y PERFILES -->
+        <section id="view-reportes" style="display:none">
+          <!-- BARRA SUPERIOR DE FILTROS POR DÍA, MES Y AÑO + GUARDADO ANUAL -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px" class="no-print">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+              <div>
+                <h3 style="font-size:17px;font-weight:800;color:#052e16">📊 Control Gerencial de Ventas Detalladas (Retención Histórica: 1 Año / 365 Días)</h3>
+                <p style="font-size:12.5px;color:var(--muted)">Consulta las ventas detalladas por Día, Mes o Año y guarda los cierres diarios en la base de datos anual.</p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="saveDailySalesArchive()">
+                  💾 Guardar Cierre del Día en Historial Anual
+                </button>
+                <button class="btn btn-accent" onclick="exportSalesReportCsv()">
+                  📥 Exportar Excel (CSV)
+                </button>
+                <button class="btn" onclick="window.print()">
+                  🖨️ Imprimir Reporte
+                </button>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px dashed var(--border)">
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-primary" id="repModeBtn-day" onclick="setReportPeriodMode('day')">📅 Por Día</button>
+                <button class="btn" id="repModeBtn-month" onclick="setReportPeriodMode('month')">📆 Por Mes</button>
+                <button class="btn" id="repModeBtn-year" onclick="setReportPeriodMode('year')">🗓️ Por Año (365 Días)</button>
+              </div>
+
+              <div id="repFilterDayWrap" style="display:flex;align-items:center;gap:6px">
+                <label style="font-size:12px;font-weight:800">Fecha:</label>
+                <input type="date" id="repDateInput" class="form-input" style="width:165px" onchange="renderAdminReportsView()" />
+              </div>
+
+              <div id="repFilterMonthWrap" style="display:none;align-items:center;gap:6px">
+                <label style="font-size:12px;font-weight:800">Mes:</label>
+                <input type="month" id="repMonthInput" class="form-input" style="width:175px" onchange="renderAdminReportsView()" />
+              </div>
+
+              <div id="repFilterYearWrap" style="display:none;align-items:center;gap:6px">
+                <label style="font-size:12px;font-weight:800">Año:</label>
+                <select id="repYearInput" class="form-input" style="width:120px" onchange="renderAdminReportsView()">
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+              </div>
+
+              <div style="flex:1;min-width:200px">
+                <input type="text" id="repArchiveNotes" class="form-input" placeholder="Observación opcional para el Cierre del Día (ej. Turno Domingo Completo)..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- TARJETAS KPI DEL PERIODO SELECCIONADO -->
+          <div id="reportKpisContainer" style="margin-bottom:16px"></div>
+
+          <!-- DESGLOSE POR MÉTODOS DE PAGO + TOP PRODUCTOS VENDIDOS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px">
+              <h3 style="font-size:15px;font-weight:800;margin-bottom:10px">💳 Desglose por Método de Pago y Comprobantes</h3>
+              <div id="reportPayBreakdownWrap"></div>
+            </div>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px">
+              <h3 style="font-size:15px;font-weight:800;margin-bottom:10px">🏆 Ranking de Productos Más Vendidos en el Periodo</h3>
+              <div id="reportTopProductsWrap" style="max-height:240px;overflow-y:auto"></div>
+            </div>
+          </div>
+
+          <!-- TABLA DETALLADA DE VENTAS / CONSOLIDADO POR DÍA, MES O AÑO -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+            <h3 style="font-size:15.5px;font-weight:800;margin-bottom:10px" id="reportMainTableTitle">🧾 Detalle de Ventas Emitidas</h3>
+            <div id="reportMainTableWrap"></div>
+          </div>
+
+          <!-- HISTORIAL DE CIERRES DIARIOS GUARDADOS (RETENCIÓN DE 1 AÑO) -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="font-size:15.5px;font-weight:800">🗄️ Historial de Cierres Diarios Guardados (Archivo de 365 Días / 1 Año)</h3>
+              <span class="mini-badge" style="background:#dcfce7;color:#15803d">Respaldo Anual Activo</span>
+            </div>
+            <div id="reportSavedArchivesWrap"></div>
+          </div>
+
+          <!-- GESTIÓN DE PERFILES Y CONTROL DE ACCESO POR USUARIO Y CONTRASEÑA -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px" class="no-print">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+              <div>
+                <h3 style="font-size:16px;font-weight:800">👥 Control de Acceso: Perfiles, Usuarios y Contraseñas</h3>
+                <p style="font-size:12px;color:var(--muted)">Crea o actualiza las cuentas de Administrador, Cajero, Cocina y Mozos.</p>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid var(--border);margin-bottom:14px">
+              <input type="text" id="newUsrName" class="form-input" placeholder="Nombre completo (ej. Juan Pérez)" />
+              <input type="text" id="newUsrLogin" class="form-input" placeholder="Usuario login (ej. juan)" />
+              <input type="text" id="newUsrPass" class="form-input" placeholder="Contraseña (ej. Juan2026)" />
+              <select id="newUsrRole" class="form-input">
+                <option value="admin">👑 Perfil: Administrador Total</option>
+                <option value="cajero">💳 Perfil: Cajero y Salón</option>
+                <option value="cocina">👨‍🍳 Perfil: Cocina y Barra KDS</option>
+                <option value="mozo">🤵 Perfil: Mozo de Salón</option>
+              </select>
+              <button class="btn btn-primary" style="justify-content:center" onclick="createStaffUser()">
+                + Crear Usuario
+              </button>
+            </div>
+
+            <div id="adminUsersTableWrap"></div>
           </div>
         </section>
       </main>
@@ -401,6 +523,55 @@
         <button class="btn" style="padding:13px 16px;font-size:14px" onclick="dismissWaiterPopupOnly()">
           Minimizar Aviso
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: CONTROL DE ACCESO POR USUARIO Y CONTRASEÑA (PERFILES DE PERSONAL) -->
+  <div id="loginScreenOverlay" class="modal-overlay" style="z-index:999;background:rgba(5,46,22,0.92);backdrop-filter:blur(8px)">
+    <div class="modal-box" style="max-width:430px;border:2px solid #facc15;box-shadow:0 25px 60px rgba(0,0,0,0.5)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="width:64px;height:64px;border-radius:16px;background:#15803d;color:#fff;font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">
+          🌴
+        </div>
+        <h2 style="font-size:20px;font-weight:800;color:#052e16">JACKFRUIT RÍO NEGRO E.I.R.L.</h2>
+        <p style="font-size:12.5px;color:var(--muted)">Control de Acceso por Perfiles (Admin, Caja, Cocina, Mozo)</p>
+      </div>
+
+      <div id="loginErrorBox" style="display:none;background:#fee2e2;color:#b91c1c;padding:9px 12px;border-radius:8px;font-size:12.5px;font-weight:700;margin-bottom:12px;text-align:center"></div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Usuario:</label>
+          <input type="text" id="loginUsernameInput" class="form-input" placeholder="Ej. admin, caja, cocina, mozo" value="admin" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:800;display:block;margin-bottom:4px">Contraseña:</label>
+          <input type="password" id="loginPasswordInput" class="form-input" placeholder="Ingresa tu contraseña" value="Admin2024" onkeydown="if(event.key==='Enter') submitStaffLogin()" />
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px" onclick="submitStaffLogin()">
+          🔐 Ingresar al Sistema
+        </button>
+      </div>
+
+      <div style="border-top:1px dashed var(--border);padding-top:12px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:8px;text-align:center">
+          ⚡ ACCESO RÁPIDO PARA DEMOSTRACIÓN DE PERFILES:
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('admin','Admin2024')">
+            👑 Admin (Total + Ventas)
+          </button>
+          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('caja','Caja2024')">
+            💳 Cajero (Salón/FE)
+          </button>
+          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('cocina','Cocina2024')">
+            👨‍🍳 Cocina (Solo KDS)
+          </button>
+          <button type="button" class="btn btn-sm" style="justify-content:center" onclick="quickFillLogin('mozo','Mozo2024')">
+            🤵 Mozo (Mesas/KDS)
+          </button>
+        </div>
       </div>
     </div>
   </div>
