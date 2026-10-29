@@ -400,13 +400,32 @@ function renderSalon() {
     const filteredTables = state.tables.filter(t => zoneFilter === 'all' || t.zone === zoneFilter);
     gridEl.innerHTML = filteredTables.map(t => {
       const ord = openOrders.find(o => o.tableId === t.id);
-      const pendingCnt = ord ? (ord.items || []).filter(i => i.state === 'pending' || i.state === 'preparing').length : 0;
+      const onlyPendingCnt = ord ? (ord.items || []).filter(i => i.state === 'pending').length : 0;
+      const preparingCnt = ord ? (ord.items || []).filter(i => i.state === 'preparing').length : 0;
       const readyCnt = ord ? (ord.items || []).filter(i => i.state === 'ready').length : 0;
 
-      let statusCls = 'free';
-      if (t.billRequested) statusCls = 'bill-req';
-      else if (readyCnt > 0) statusCls = 'has-ready';
-      else if (ord) statusCls = 'occupied';
+      let statusCls = 'st-free';
+      let stateBannerText = '';
+
+      if (t.waiterCall) {
+        statusCls = 'st-waiter';
+        stateBannerText = '🔔 ¡LLAMA AL MOZO!';
+      } else if (t.billRequested) {
+        statusCls = 'st-bill';
+        stateBannerText = '🧾 ¡PIDE LA CUENTA!';
+      } else if (readyCnt > 0) {
+        statusCls = 'st-ready';
+        stateBannerText = `✅ ¡LISTO PARA LLEVAR! (${readyCnt})`;
+      } else if (preparingCnt > 0) {
+        statusCls = 'st-preparing';
+        stateBannerText = `🔥 EN PREPARACIÓN (${preparingCnt})`;
+      } else if (onlyPendingCnt > 0) {
+        statusCls = 'st-pending';
+        stateBannerText = `⏳ EN COLA COCINA (${onlyPendingCnt})`;
+      } else if (ord) {
+        statusCls = 'st-delivered';
+        stateBannerText = '🍽️ SERVIDO EN MESA';
+      }
 
       return `
         <div class="table-card ${statusCls} ${selectedTableId === t.id && !selectedExternalOrderId ? 'selected' : ''}" onclick="selectTable(${t.id})">
@@ -415,16 +434,14 @@ function renderSalon() {
             <span class="pin-tag" title="PIN de seguridad QR">PIN: ${t.pin}</span>
           </div>
           ${ord ? `
-            <div style="font-size:11.5px;color:var(--muted);font-weight:600">
+            <div style="font-size:11.5px;color:rgba(255,255,255,0.92);font-weight:700">
               ${ord.channel === 'qr' ? '📱 Pedido QR' : '🤵 Salón'} • ${ord.items.length} ítem(s)
             </div>
             <div class="table-total">S/ ${Number(ord.total).toFixed(2)}</div>
-            <div class="table-badges">
-              ${pendingCnt > 0 ? `<span class="mini-badge" style="background:#fef3c7;color:#92400e">🔥 ${pendingCnt} cocina</span>` : ''}
-              ${readyCnt > 0 ? `<span class="mini-badge" style="background:#dcfce7;color:#15803d">✅ ${readyCnt} listo</span>` : ''}
-              ${t.waiterCall ? `<span class="mini-badge" style="background:#fee2e2;color:#b91c1c">🔔 Mozo</span>` : ''}
-              ${t.billRequested ? `<span class="mini-badge" style="background:#dbeafe;color:#1d4ed8">🧾 Cuenta</span>` : ''}
-            </div>
+            <div class="table-state-banner">${stateBannerText}</div>
+          ` : (t.waiterCall || t.billRequested) ? `
+            <div style="font-size:12px;color:#fff;font-weight:700;margin-top:4px">${t.zone}</div>
+            <div class="table-state-banner">${stateBannerText}</div>
           ` : `
             <div style="font-size:12px;color:var(--muted);margin-top:8px">Disponible</div>
             <div style="font-size:11px;color:#94a3b8;margin-top:4px">${t.zone}</div>
@@ -613,6 +630,17 @@ function renderKdsCardHtml(order, stationFilter) {
   const hasPending = activeItems.some(i => i.state === 'pending');
   const hasPreparing = activeItems.some(i => i.state === 'preparing');
 
+  // Estado global intenso para pintar todo el cuadro de la comanda en KDS
+  let kdsStateClass = 'kds-state-ready';
+  let kdsStateTag = '✅ LISTO PARA MOZO';
+  if (hasPreparing) {
+    kdsStateClass = 'kds-state-preparing';
+    kdsStateTag = '🔥 EN PREPARACIÓN';
+  } else if (hasPending) {
+    kdsStateClass = 'kds-state-pending';
+    kdsStateTag = '⏳ EN COLA / NUEVO';
+  }
+
   const stationBadges = {
     heladeria: '🍨 Heladería',
     cocina: '🍳 Cocina',
@@ -620,48 +648,57 @@ function renderKdsCardHtml(order, stationFilter) {
   };
 
   return `
-    <div class="kds-card ${elapsed.sla}" data-created="${order.updatedAt || order.createdAt}">
+    <div class="kds-card ${kdsStateClass} ${elapsed.sla}" data-created="${order.updatedAt || order.createdAt}">
       <div class="kds-header">
         <div>
-          <div style="font-size:17px;font-weight:800">
-            ${order.tableName}
-            <span style="font-size:12px;font-weight:700;background:rgba(255,255,255,0.22);padding:2px 8px;border-radius:99px;margin-left:4px">
-              ${order.channel === 'qr' ? '📱 QR MESA' : (order.channel === 'delivery' ? '🛵 DELIVERY' : (order.channel === 'mostrador' ? '🛍️ MOSTRADOR' : '🤵 MOZO'))}
+          <div style="font-size:18px;font-weight:800;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span>${order.tableName}</span>
+            <span style="font-size:11px;font-weight:800;background:rgba(0,0,0,0.32);padding:3px 9px;border-radius:99px;border:1px solid rgba(255,255,255,0.35)">
+              ${kdsStateTag}
             </span>
           </div>
-          <div style="font-size:11.5px;opacity:0.9">Comanda #${order.code} • ${order.customerName}</div>
+          <div style="font-size:11.5px;opacity:0.95;margin-top:3px">
+            Comanda #${order.code} • ${order.customerName} (${order.channel === 'qr' ? '📱 QR MESA' : '🤵 SALÓN'})
+          </div>
         </div>
         <div class="kds-timer" data-timer-ts="${order.updatedAt || order.createdAt}">⏱ ${elapsed.text}</div>
       </div>
 
       <div class="kds-items">
-        ${activeItems.map(it => `
-          <div class="kds-item-row">
+        ${activeItems.map(it => {
+          const rowBg = it.state === 'ready'
+            ? 'background:#86efac;border:1.5px solid #16a34a;color:#052e16;'
+            : (it.state === 'preparing'
+                ? 'background:#fdba74;border:1.5px solid #ea580c;color:#7c2d12;'
+                : 'background:#fde047;border:1.5px solid #d97706;color:#713f12;');
+          return `
+          <div class="kds-item-row" style="${rowBg}padding:10px;border-radius:10px;margin-bottom:8px">
             <div style="display:flex;align-items:start;gap:8px">
-              <span class="kds-qty">${it.qty}x</span>
+              <span class="kds-qty" style="color:inherit">${it.qty}x</span>
               <div>
-                <div style="font-weight:800;font-size:14px">${it.name}</div>
-                <span style="font-size:10.5px;color:var(--muted)">${stationBadges[it.station] || it.category}</span>
-                ${it.comment ? `<div style="font-size:12px;font-weight:700;color:#b45309;background:#fef3c7;padding:2px 6px;border-radius:6px;margin-top:3px">⚠️ ${it.comment}</div>` : ''}
+                <div style="font-weight:800;font-size:14.5px">${it.name}</div>
+                <span style="font-size:11px;font-weight:700;opacity:0.85">${stationBadges[it.station] || it.category}</span>
+                ${it.comment ? `<div style="font-size:12px;font-weight:800;color:#fff;background:#b91c1c;padding:2px 8px;border-radius:6px;margin-top:4px">⚠️ ${it.comment}</div>` : ''}
               </div>
             </div>
             <div>
               ${it.state === 'pending' ? `
-                <button class="btn btn-sm" style="background:#ffedd5;color:#c2410c;border-color:#fdba74" onclick="updateSingleItemState('${order.id}', '${it.id}', 'preparing')">
+                <button class="btn btn-sm" style="background:#ea580c;color:#fff;border-color:#c2410c;font-weight:800" onclick="updateSingleItemState('${order.id}', '${it.id}', 'preparing')">
                   🔥 Preparar
                 </button>
               ` : it.state === 'preparing' ? `
-                <button class="btn btn-sm btn-primary" onclick="updateSingleItemState('${order.id}', '${it.id}', 'ready')">
+                <button class="btn btn-sm" style="background:#15803d;color:#fff;border-color:#14532d;font-weight:800" onclick="updateSingleItemState('${order.id}', '${it.id}', 'ready')">
                   ✅ Listo
                 </button>
               ` : `
-                <button class="btn btn-sm" style="background:#dcfce7;color:#15803d" onclick="updateSingleItemState('${order.id}', '${it.id}', 'delivered')">
+                <button class="btn btn-sm" style="background:#052e16;color:#fff;font-weight:800" onclick="updateSingleItemState('${order.id}', '${it.id}', 'delivered')">
                   🍽️ Entregado
                 </button>
               `}
             </div>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
 
       <div class="kds-footer">

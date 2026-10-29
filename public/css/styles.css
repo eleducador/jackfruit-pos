@@ -321,40 +321,131 @@ body {
 
 .table-card {
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 2.5px solid #cbd5e1;
   border-radius: 14px;
   padding: 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .table-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
 }
 
 .table-card.selected {
-  outline: 3px solid #15803d;
+  outline: 4px solid #052e16;
+  outline-offset: 2px;
 }
 
-.table-card.free {
+.table-card.free,
+.table-card.st-free {
+  background: #ffffff;
   border-color: #cbd5e1;
+  color: #0f172a;
 }
 
+/* 1. PENDIENTE / EN COLA DE COCINA (ÁMBAR DORADO INTENSO EN TODO EL CUADRO) */
+.table-card.st-pending,
 .table-card.occupied {
-  border-color: #f59e0b;
-  background: #fffbeb;
+  background: linear-gradient(145deg, #d97706 0%, #b45309 100%);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.35);
 }
 
+/* 2. EN PREPARACIÓN EN COCINA (NARANJA FUEGO INTENSO EN TODO EL CUADRO) */
+.table-card.st-preparing {
+  background: linear-gradient(145deg, #ea580c 0%, #c2410c 100%);
+  border-color: #fed7aa;
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.42);
+}
+
+/* 3. ¡LISTO EN COCINA PARA LLEVAR A MESA! (VERDE ESMERALDA INTENSO EN TODO EL CUADRO) */
+.table-card.st-ready,
 .table-card.has-ready {
-  border-color: #16a34a;
-  background: #f0fdf4;
+  background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+  border-color: #86efac;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.45);
+  animation: pulseCardReady 1.8s infinite;
 }
 
+/* 4. SERVIDO / CONSUMIENDO EN MESA (ÍNDIGO / TURQUESA PROFUNDO EN TODO EL CUADRO) */
+.table-card.st-delivered {
+  background: linear-gradient(145deg, #0f766e 0%, #115e59 100%);
+  border-color: #5eead4;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 118, 110, 0.32);
+}
+
+/* 5. SOLICITANDO LA CUENTA (AZUL ELÉCTRICO INTENSO EN TODO EL CUADRO) */
+.table-card.st-bill,
 .table-card.bill-req {
-  border-color: #2563eb;
-  background: #eff6ff;
+  background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #93c5fd;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
+  animation: pulseCardReady 1.6s infinite;
+}
+
+/* 6. LLAMANDO AL MOZO (ROJO ALERTA INTENSO EN TODO EL CUADRO) */
+.table-card.st-waiter {
+  background: linear-gradient(145deg, #dc2626 0%, #991b1b 100%);
+  border-color: #fca5a5;
+  color: #ffffff;
+  box-shadow: 0 8px 26px rgba(220, 38, 38, 0.55);
+  animation: pulseCardReady 1.2s infinite;
+}
+
+@keyframes pulseCardReady {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+.table-card.st-pending .table-total,
+.table-card.st-preparing .table-total,
+.table-card.st-ready .table-total,
+.table-card.st-delivered .table-total,
+.table-card.st-bill .table-total,
+.table-card.st-waiter .table-total,
+.table-card.occupied .table-total,
+.table-card.has-ready .table-total,
+.table-card.bill-req .table-total {
+  color: #fef08a;
+  font-size: 17px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+
+.table-card.st-pending .pin-tag,
+.table-card.st-preparing .pin-tag,
+.table-card.st-ready .pin-tag,
+.table-card.st-delivered .pin-tag,
+.table-card.st-bill .pin-tag,
+.table-card.st-waiter .pin-tag,
+.table-card.occupied .pin-tag,
+.table-card.has-ready .pin-tag,
+.table-card.bill-req .pin-tag {
+  background: rgba(0, 0, 0, 0.28);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.table-state-banner {
+  margin-top: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.26);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .table-card-top {
@@ -410,7 +501,7 @@ body {
   box-shadow: 0 4px 16px rgba(0,0,0,0.04);
 }
 
-/* KDS Kitchen Cards */
+/* KDS Kitchen Cards — Full-Box Intense State Colors */
 .kds-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
@@ -420,17 +511,61 @@ body {
 .kds-card {
   background: var(--surface);
   border-radius: 16px;
-  border: 2px solid var(--border);
+  border: 3px solid var(--border);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
 }
 
-.kds-card.sla-green { border-color: #22c55e; }
-.kds-card.sla-amber { border-color: #f59e0b; }
-.kds-card.sla-red { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+/* KDS Estado 1: EN COLA / PENDIENTE (ÁMBAR INTENSO EN TODO EL CUADRO) */
+.kds-card.kds-state-pending {
+  background: #fef9c3;
+  border-color: #d97706;
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.25);
+}
+.kds-card.kds-state-pending .kds-header {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+}
+.kds-card.kds-state-pending .kds-footer {
+  background: #fef08a;
+  border-top-color: #f59e0b;
+}
+
+/* KDS Estado 2: EN PREPARACIÓN (NARANJA FUEGO INTENSO EN TODO EL CUADRO) */
+.kds-card.kds-state-preparing {
+  background: #ffedd5;
+  border-color: #ea580c;
+  box-shadow: 0 10px 26px rgba(234, 88, 12, 0.32);
+}
+.kds-card.kds-state-preparing .kds-header {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+}
+.kds-card.kds-state-preparing .kds-footer {
+  background: #fed7aa;
+  border-top-color: #fb923c;
+}
+
+/* KDS Estado 3: LISTO PARA MOZO (VERDE ESMERALDA INTENSO EN TODO EL CUADRO) */
+.kds-card.kds-state-ready {
+  background: #dcfce7;
+  border-color: #16a34a;
+  box-shadow: 0 10px 26px rgba(22, 163, 74, 0.32);
+}
+.kds-card.kds-state-ready .kds-header {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+.kds-card.kds-state-ready .kds-footer {
+  background: #bbf7d0;
+  border-top-color: #4ade80;
+}
+
+.kds-card.sla-red {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.22);
+}
 
 .kds-header {
   padding: 12px 14px;
@@ -439,10 +574,6 @@ body {
   align-items: center;
   color: #fff;
 }
-
-.kds-card.sla-green .kds-header { background: #15803d; }
-.kds-card.sla-amber .kds-header { background: #d97706; }
-.kds-card.sla-red .kds-header { background: #dc2626; }
 
 .kds-timer {
   background: rgba(0,0,0,0.28);
